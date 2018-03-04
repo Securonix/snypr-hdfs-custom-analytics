@@ -347,105 +347,108 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
+ * This class includes all required utility methods,those are used to perform
+ * custom analytics and processing of violations data.
  *
  * @author manishkumar
  */
 public class HDFSCustomUtil {
-    
-    private final static Logger LOGGER = LogManager.getLogger();
-    private static Long tenantId;
-    private static String tenantName;
-    private static String tenantTz;
-    private static List<EnrichedEventObject> vList;
-    
-    public static void executeCustomPolicy(PolicyMaster policy) throws Exception {
-        
-        final TenantConfigBean tcb = HDFSCustomExecutor.hcb.getTenantConfigBean();
-        tenantId = tcb.getDefaultTenantId();
-        tenantName = tcb.getDefaultTenant();
-        tenantTz = CommonUtility.getApplicationTimezone().getID();
-        vList = new ArrayList<>();
 
-        /*
-        violationQuery : Query used to get violation entities from HDBS data
-         */
-        String violationQuery = "select activityaccount, dayofyear, year, count(frequency),ipaddres from resourcesincoming where message=“Failed Password” group by ipaddres,activitaccount,dayofyear,year having count(frequency)>5";
-        
+    private final static Logger LOGGER = LogManager.getLogger();
+
+    // violationList is used to collect all the violations data.
+    private final static List<EnrichedEventObject> violationList = new ArrayList<>();
+
+    public static void executeCustomPolicy(PolicyMaster policy) throws Exception {
+
+        // violationEvents is used to collect all the events, which are detected as violations.
         List<HashMap<String, Object>> violationEvents = null;
-        
+
+        // violationQuery is sample query, which is used to get violation entities.
+        final String violationQuery = "select activityaccount, dayofyear, year, count(frequency),ipaddres from resourcesincoming where message=“Failed Password” group by ipaddres,activitaccount,dayofyear,year having count(frequency)>5";
+
         try {
+
+            // Get violations entiteis from HDFS
             violationEvents = ImpalaDbUtil.executeQuery(violationQuery);
         } catch (Exception ex) {
             LOGGER.error("Error getting results from HDFS ", ex);
         }
-        
+
         if (violationEvents != null && !violationEvents.isEmpty()) {
-            
+
             for (HashMap<String, Object> violationEvent : violationEvents) {
-                
+
+                // Get violationaccount
                 String violationaccount = (String) violationEvent.get("activityaccount");
-                
+
+                // Get violationdayofyear
                 String violationdayofyear = (String) violationEvent.get("dayofyear");
-                
+
+                // Get violationyear
                 String violationyear = (String) violationEvent.get("year");
-                
+
+                // Get violationipaddress
                 String violationipaddress = (String) violationEvent.get("ipaddres");
-                
+
+                // violationDetailQuery is formmed with all above variables.This query is used to get complete violation details.
                 String violationDetailQuery = "select * from resourcesincoming where activityaccount=" + violationaccount + "and dayofyear=" + violationdayofyear + "and year=" + violationyear + "and ipaddress=" + violationipaddress + "";
 
-                /*
-                  violationDetailQuery : This query is used to get violation details.
-                 */
                 try {
                     processHdfsQuery(violationDetailQuery);
                 } catch (Exception ex) {
                     LOGGER.warn("Unable to replace value in {}", violationDetailQuery, ex);
                 }
-                
+
             }
-            
+
         } else {
             LOGGER.info("No Violation found");
         }
+
+        LOGGER.debug(" Violations found # {}", violationList.size());
         
-        LOGGER.debug(" Violations found # {}", vList.size());
-        
-        if (!vList.isEmpty()) {
-            HDFSCustomExecutor.eeoProducer.publish(vList, HDFSCustomExecutor.violationTopic);
+        //violationList is published to violations topic
+
+        if (!violationList.isEmpty()) {
+            HDFSCustomExecutor.eeoProducer.publish(violationList, HDFSCustomExecutor.violationTopic);
         }
-        
+
     }
-    
+
+    /*
+    This method is used to process violation query.
+     */
     public static void processHdfsQuery(final String query) {
-        
+
         List<HashMap<String, Object>> events = null;
         long resultCount;
         int offset = 0;
-        
+
         boolean recordsAvailable = true;
         while (recordsAvailable) {
-            
+
             LOGGER.debug("Querying with Offset:{} Max:{} Q:{} ..", offset, BATCH_SIZE, query);
-            
+
             try {
+
+                // Get all violations events
                 events = ImpalaDbUtil.executeImapalaQuery(query, offset, BATCH_SIZE);
             } catch (Exception ex) {
                 LOGGER.error("Error getting results from HDFS", ex);
             }
-            
+
             if (events == null || events.isEmpty()) {
                 LOGGER.warn("No response from HDFS!");
                 recordsAvailable = false;
-                
+
             } else {
                 resultCount = events.size();
                 LOGGER.debug("Total documents # {} Returned # {}", resultCount, events.size());
 
-                /*
-                collectViolations : This method is used to generate vilations data
-                 */
+                // process hdfs details and collect violations data
                 collectViolations(events.iterator());
-                
+
                 if (recordsAvailable = resultCount >= BATCH_SIZE) {
                     offset += BATCH_SIZE;
                 } else {
@@ -453,19 +456,33 @@ public class HDFSCustomUtil {
                 }
             }
         }
-        
+
     }
-    
+
+    /*
+    This methid is used to process HDFS data and generate/collect violations
+     */
     public static void collectViolations(final Iterator<HashMap<String, Object>> iterator) {
-        
+
         LOGGER.debug("[Updating violations ..");
-        EnrichedEventObject eeo;
-        Violation v;
-        List<Violation> violations;
         
+        // eeo object will have complete event details (along-with violations details) 
+        
+        EnrichedEventObject eeo;
+        
+        // violations : this will have violations details with-in eeo object 
+        
+        List<Violation> violations;
+        Violation v;
+
+        final TenantConfigBean tcb = HDFSCustomExecutor.hcb.getTenantConfigBean();
+        final long tenantId = tcb.getDefaultTenantId();
+        final String tenantName = tcb.getDefaultTenant();
+        final String tenantTz = CommonUtility.getApplicationTimezone().getID();
+
         final Long policyId = HDFSCustomExecutor.policy.getId();
         final String policyName = HDFSCustomExecutor.policy.getName();
-        
+
         final String violator = HDFSCustomExecutor.policy.getViolator();
         final long riskthreatid = HDFSCustomExecutor.policy.getRiskthreatid();
         final String threatname = HDFSCustomExecutor.policy.getThreatname();
@@ -474,17 +491,19 @@ public class HDFSCustomUtil {
         final String category = HDFSCustomExecutor.policy.getCategory();
         final double riskScore = PolicyConstants.CRITICALITY_MAP.get(HDFSCustomExecutor.policy.getCriticality());
         while (iterator.hasNext()) {
-            
+
             eeo = new EnrichedEventObject();
             eeo.setTenantTz(tenantTz);
             eeo.setTenantid(tenantId);
             eeo.setTenantname(tenantName);
             
+            // populate eeo object with the help of HDFS details
+
             populateEEO(iterator.next(), eeo);
-            
+
             eeo.setViolations(violations = new ArrayList<>());
             violations.add(v = new Violation(policyId, policyName));
-            
+
             v.setViolator(violator);
             v.setRiskThreatId(riskthreatid);
             v.setRiskThreatName(threatname);
@@ -492,14 +511,21 @@ public class HDFSCustomUtil {
             v.setCategoryId(categoryid);
             v.setCategory(category);
             v.setRiskScore(riskScore);
-            vList.add(eeo);
+            
+            // eeo object is added to violationList
+            
+            violationList.add(eeo);
         }
     }
     
+    /*
+    This method is used to create eeo object by using HDFS details
+    */
+
     private static void populateEEO(final Map<String, Object> map, final EnrichedEventObject eeo) {
-        
+
         Object o;
-        
+
         if ((o = map.get(EVENTID)) != null) {
             eeo.setEventid((String) o);
         }
@@ -517,7 +543,7 @@ public class HDFSCustomUtil {
         if ((o = map.get(ACCOUNTNAME)) != null) {
             eeo.setAccountname((String) o);
         }
-        
+
         if ((o = map.get(YEAR)) != null) {
             if (o instanceof Integer) {
                 eeo.setYear((Integer) o);
@@ -606,11 +632,11 @@ public class HDFSCustomUtil {
                 }
             }
         }
-        
+
         if ((o = map.get(RAWEVENT)) != null) {
             eeo.setRawevent((String) o);
         }
-        
+
         if ((o = map.get(U_ID)) != null) {
             if (o instanceof Long) {
                 eeo.setU_id((Long) o);
@@ -622,11 +648,11 @@ public class HDFSCustomUtil {
                 }
             }
         }
-        
+
         if ((o = map.get(U_EMPLOYEEID)) != null) {
             eeo.setU_employeeid((String) o);
         }
-        
+
         if ((o = map.get(U_FIRSTNAME)) != null) {
             eeo.setU_firstname((String) o);
         }
@@ -636,7 +662,7 @@ public class HDFSCustomUtil {
         if ((o = map.get(U_LASTNAME)) != null) {
             eeo.setU_lastname((String) o);
         }
-        
+
         if ((o = map.get(U_DEPARTMENT)) != null) {
             eeo.setU_department((String) o);
         }
@@ -686,7 +712,7 @@ public class HDFSCustomUtil {
                 }
             }
         }
-        
+
         if ((o = map.get(U_CUSTOMFIELD1)) != null) {
             eeo.setU_customfield1((String) o);
         }
@@ -801,7 +827,7 @@ public class HDFSCustomUtil {
         if ((o = map.get(U_CUSTOMFIELD30)) != null) {
             eeo.setU_customfield30((String) o);
         }
-        
+
         if ((o = map.get(U_PROMOTED)) != null) {
             eeo.setU_promoted((String) o);
         }
@@ -816,7 +842,7 @@ public class HDFSCustomUtil {
                 }
             }
         }
-        
+
         if ((o = map.get(U_USERGROUP)) != null) {
             eeo.setU_usergroup((String) o);
         }
@@ -841,7 +867,7 @@ public class HDFSCustomUtil {
         if ((o = map.get(U_COUNTRY)) != null) {
             eeo.setU_country((String) o);
         }
-        
+
         if ((o = map.get(U_APPROVEREMPLOYEEID)) != null) {
             eeo.setU_approveremployeeid((String) o);
         }
@@ -872,7 +898,7 @@ public class HDFSCustomUtil {
         if ((o = map.get(U_CREATEDBY)) != null) {
             eeo.setU_createdby((String) o);
         }
-        
+
         if ((o = map.get(U_COSTCENTERNAME)) != null) {
             eeo.setU_costcentername((String) o);
         }
@@ -945,14 +971,14 @@ public class HDFSCustomUtil {
                 }
             }
         }
-        
+
         if ((o = map.get(U_CRITICALITY)) != null) {
             eeo.setU_criticality((String) o);
         }
         if ((o = map.get(U_DOMINTLIN)) != null) {
             eeo.setU_domintlin((String) o);
         }
-        
+
         if ((o = map.get(U_NAMEPREFIX)) != null) {
             eeo.setU_nameprefix((String) o);
         }
@@ -968,7 +994,7 @@ public class HDFSCustomUtil {
         if ((o = map.get(U_STATUSDESCRIPTION)) != null) {
             eeo.setU_statusdescription((String) o);
         }
-        
+
         if ((o = map.get(U_VACATIONSTART)) != null) {
             if (o instanceof Long) {
                 eeo.setU_vacationstart((Long) o);
@@ -991,7 +1017,7 @@ public class HDFSCustomUtil {
                 }
             }
         }
-        
+
         if ((o = map.get(U_NETWORKID)) != null) {
             eeo.setU_networkid((String) o);
         }
@@ -1016,7 +1042,7 @@ public class HDFSCustomUtil {
         if ((o = map.get(U_MAILCODE)) != null) {
             eeo.setU_mailcode((String) o);
         }
-        
+
         if ((o = map.get(U_HIREDATE)) != null) {
             if (o instanceof Long) {
                 eeo.setU_hiredate((Long) o);
@@ -1094,7 +1120,7 @@ public class HDFSCustomUtil {
                 }
             }
         }
-        
+
         if ((o = map.get(U_EMPLOYEETYPEDESCRIPTION)) != null) {
             eeo.setU_employeetypedescription((String) o);
         }
@@ -1232,7 +1258,7 @@ public class HDFSCustomUtil {
                 }
             }
         }
-        
+
         if ((o = map.get(RG_ID)) != null) {
             if (o instanceof Long) {
                 eeo.setRg_id((Long) o);
@@ -1387,7 +1413,7 @@ public class HDFSCustomUtil {
                 }
             }
         }
-        
+
         if ((o = map.get(RESOURCENAME)) != null) {
             eeo.setResourcename((String) o);
         }
@@ -1412,7 +1438,7 @@ public class HDFSCustomUtil {
         if ((o = map.get(ALERTID)) != null) {
             eeo.setAlertid((String) o);
         }
-        
+
         if ((o = map.get(APPLICATIONPROTOCOL)) != null) {
             eeo.setApplicationprotocol((String) o);
         }
@@ -1540,7 +1566,7 @@ public class HDFSCustomUtil {
                 }
             }
         }
-        
+
         if ((o = map.get(FILENAME)) != null) {
             eeo.setFilename((String) o);
         }
@@ -1625,7 +1651,7 @@ public class HDFSCustomUtil {
         if ((o = map.get(OLDFILETYPE)) != null) {
             eeo.setOldfiletype((String) o);
         }
-        
+
         if ((o = map.get(MESSAGE)) != null) {
             eeo.setMessage((String) o);
         }
@@ -1653,7 +1679,7 @@ public class HDFSCustomUtil {
         if ((o = map.get(REQUESTMETHOD)) != null) {
             eeo.setRequestmethod((String) o);
         }
-        
+
         if ((o = map.get(TRANSLATEDIPADDRESS)) != null) {
             eeo.setTranslatedipaddress((String) o);
         }
@@ -1866,7 +1892,7 @@ public class HDFSCustomUtil {
         if ((o = map.get(RESOURCEHOSTNAME)) != null) {
             eeo.setResourcehostname((String) o);
         }
-        
+
         if ((o = map.get(EVENTCOUNTRY)) != null) {
             eeo.setEventcountry((String) o);
         }
@@ -1975,7 +2001,7 @@ public class HDFSCustomUtil {
         if ((o = map.get(RESOURCEHOSTNAMEREGION)) != null) {
             eeo.setResourcehostnameregion((String) o);
         }
-        
+
         if ((o = map.get(RESOURCEHOSTNAMECITY)) != null) {
             eeo.setResourcehostnamecity((String) o);
         }
@@ -2038,7 +2064,7 @@ public class HDFSCustomUtil {
         if ((o = map.get(DEVICEHOSTNAMEPOSTALCODE)) != null) {
             eeo.setDevicehostnamepostalcode((String) o);
         }
-        
+
         if ((o = map.get(TPI_ADDR)) != null) {
             eeo.setTpi_addr((String) o);
         }
@@ -2117,7 +2143,7 @@ public class HDFSCustomUtil {
         if ((o = map.get(TPI_INDICATORS)) != null) {
             eeo.setTpi_indicators((String) o);
         }
-        
+
         if ((o = map.get(ACCOUNTCRITICALITY)) != null) {
             eeo.setAccountcriticality((String) o);
         }
@@ -2185,14 +2211,14 @@ public class HDFSCustomUtil {
         if ((o = map.get(ACCOUNTSTATUS)) != null) {
             eeo.setAccountstatus((String) o);
         }
-        
+
         if ((o = map.get(CATEGORYOUTCOME)) != null) {
             eeo.setCategoryoutcome((String) o);
         }
         if ((o = map.get(CATEGORYSEVERITY)) != null) {
             eeo.setCategoryseverity((String) o);
         }
-        
+
         if ((o = map.get(TENANTNAME)) != null) {
             eeo.setTenantname((String) o);
         }
@@ -2217,5 +2243,5 @@ public class HDFSCustomUtil {
             eeo.setDeviceexternalid((String) o);
         }
     }
-    
+
 }
