@@ -23,8 +23,8 @@ import java.util.Properties;
 import java.util.Set;
 
 /**
- * This class is used to perform custom analytics on HDFS data and violations
- * get stored into violations topic
+ * This class is used to perform custom analytics on HDFS data. 
+ * and detected violations get stored into Violations topic. 
  *
  * @author manishkumar
  */
@@ -37,7 +37,10 @@ public class HDFSCustomExecutor {
     private final static Logger LOGGER = LogManager.getLogger();
 
     public static PolicyMaster policy;
-
+   
+    /*
+    This main method is entry point of custom job to perform custom analytics on HDFS data
+    */
     public static void main(String args[]) throws Exception {
 
         final Map<String, String> argumentsMap = SnyperUtil.extractArguments(args);
@@ -54,27 +57,10 @@ public class HDFSCustomExecutor {
 
             System.err.println(); // a blank line!
             System.exit(-1);
-        }
+        }     
 
-        final String consumerGroupId = argumentsMap.get("-cg");
-
-        String maxRatePerPartition = null;
-        if (argumentsMap.containsKey("-mrpp")) {
-            maxRatePerPartition = argumentsMap.get("-mrpp");
-        }
-        LOGGER.debug("Max Rate Per Partition- {}", maxRatePerPartition);
-
-        int countsUpdateFrequency = 0;
-        if (argumentsMap.containsKey("-cuf")) {
-            try {
-                countsUpdateFrequency = Integer.parseInt(argumentsMap.get("-cuf"));
-            } catch (NumberFormatException ex) {
-                OpsLogger.log(OpsLogger.SOURCE.IEE, OpsLogger.SEVERITY.MEDIUM, String.format("Error parsing CUF - %s", ex));
-            }
-        }
-        final int cuf = countsUpdateFrequency;
-        LOGGER.debug("Counts Update Frequency- {}", cuf);
-
+        // Get Hadoop configuration
+        
         hcb = HadoopConfigUtil.getHadoopConfiguration();
         if (hcb == null) {
             System.err.println("Unable to obtain Hadoop configuration\n");
@@ -83,6 +69,9 @@ public class HDFSCustomExecutor {
         }
 
         OpsLogger.log(OpsLogger.SOURCE.IEE, "Hadoop configuration obtained!");
+        
+        
+        // Get Kafka configuration from hadoop bean
 
         KafkaConfigBean kafkaConfigBean = hcb.getKafkaConfigBean();
         if (kafkaConfigBean == null) {
@@ -91,33 +80,42 @@ public class HDFSCustomExecutor {
             System.exit(-1);
         }
         OpsLogger.log(OpsLogger.SOURCE.IEE, "Kafka configuration obtained!");
+        
+        // Get violation topic from kafka configuration
 
         final Set<String> topicsSet = new HashSet<>(Arrays.asList(kafkaConfigBean.getViolationTopic().split(",")));
-        if (violationTopic == null || violationTopic.isEmpty()) { // if topic is not provided on command line
+        if (violationTopic == null || violationTopic.isEmpty()) {
             violationTopic = topicsSet.iterator().next();
         }
         LOGGER.debug("Violation topic- {}", violationTopic);
         
+        // Get policyId from VM arguments of job's run sricpt.
         
         long policyId = 0;
         if (argumentsMap.containsKey("-pmId")) {
             try {
                 policyId = Long.parseLong(argumentsMap.get("-pmId"));
             } catch (NumberFormatException ex) {
-                System.err.println("Unable to obtain Policy configuration\n");
-                OpsLogger.log(OpsLogger.SOURCE.IEE, OpsLogger.SEVERITY.HIGH, "ERROR: Unable to obtain Policy configuration");
+                System.err.println("Unable to obtain PolicyID configuration\n");
+                OpsLogger.log(OpsLogger.SOURCE.IEE, OpsLogger.SEVERITY.HIGH, "ERROR: Unable to obtain PolicyID configuration");
                 System.exit(1);
 
             }
         }
+        
+        // Get required Policy object.
 
         policy = PolicyUtil.getPolicy(policyId);
 
         Properties props = new Properties();
         props.put("source", HadoopConfigBean.KAFKA_SOURCE.CLUSTER);
+        
+        // Get Kafka Publisher to publish data into Violation topic
 
         eeoProducer = (EEOProducer) KafkaProducerFactory.INSTANCE.getProducer(KafkaProducerFactory.TYPE_OF_MESSAGE.EEO, kafkaConfigBean, props);
 
+        // Start processing for custom analytics 
+        
         HDFSCustomUtil.executeCustomPolicy(policy);
     }
 
