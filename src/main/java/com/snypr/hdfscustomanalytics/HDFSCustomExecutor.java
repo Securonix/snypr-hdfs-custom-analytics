@@ -102,7 +102,7 @@ public class HDFSCustomExecutor {
         long policyId = 0;
         if (argumentsMap.containsKey("-pmId")) {
             try {
-                policyId = Integer.parseInt(argumentsMap.get("-pmId"));
+                policyId = Long.parseLong(argumentsMap.get("-pmId"));
             } catch (NumberFormatException ex) {
                 System.err.println("Unable to obtain Policy configuration\n");
                 OpsLogger.log(OpsLogger.SOURCE.IEE, OpsLogger.SEVERITY.HIGH, "ERROR: Unable to obtain Policy configuration");
