@@ -1,7 +1,6 @@
 package com.snypr.hdfscustomanalytics;
 
 import com.securonix.application.common.CommonUtility;
-import com.securonix.application.hibernate.tables.PolicyMaster;
 import com.securonix.application.impala.ImpalaDbUtil;
 import com.securonix.application.policy.PolicyConstants;
 import static com.securonix.application.policy.PolicyConstants.BATCH_SIZE;
@@ -57,7 +56,7 @@ public class HDFSCustomUtil {
      * @see <code>publish</code> in the
      * <code>com.securonix.kafkaclient.producers.EEOProducer</code> module
      */
-    public static void executeCustomPolicy(PolicyMaster policy) throws Exception {
+    public static void executeCustomPolicy() throws Exception {
 
         // violationEvents is used to collect all the events, which are detected as violations.
         List<HashMap<String, Object>> violationEvents = null;
@@ -100,9 +99,16 @@ public class HDFSCustomUtil {
 
     }
 
-    /*
-    This method is used to process violation query.
+   
+    /**
+     * processHdfsQuery method is used to executes and fetch records from HDFS.
+     *
+     * @author ManishKumar
+     * @version 1.0
+     * @param query parameter is used to fetch records from HDFS.
+     * @since 2017-03-31
      */
+    
     public static void processHdfsQuery(final String query) {
 
         List<HashMap<String, Object>> events = null;
@@ -142,6 +148,16 @@ public class HDFSCustomUtil {
         }
 
     }
+    
+    
+    /**
+     * collectViolations method is used to process HDFS data and generate EEO object List.
+     *
+     * @author ManishKumar
+     * @version 1.0
+     * @param iterator parameter is used to  have reference of each HDFS record.  
+     * @since 2017-03-31
+     */
 
     /*
     This methid is used to process HDFS data and generate/collect violations
