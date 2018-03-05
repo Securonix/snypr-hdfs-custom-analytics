@@ -22,7 +22,7 @@ public class EEOUtil {
      *
      * @author ManishKumar
      * @version 1.0
-     * @param map this parameter used to create EEO object
+     * @param map this parameter is used to create EEO object
      * @param eeo this parameter contains all details regarding event and violation.
      * @since 2017-03-31
      */
