@@ -45,7 +45,7 @@ public class HDFSCustomUtil {
     private static final HashMap<Long, Tuple2<ViolationDisplayConfigBean, List<String>>> vInfoConfig = new HashMap<>();
 
     /**
-     * executeCustomPolicy method is used to executes custom query on HDFS. EEO
+     * This method is used to executes custom query on HDFS. EEO
      * object gets generated from HDFS records.Detected violations get publish
      * into the Violation Topic.
      *
@@ -101,7 +101,7 @@ public class HDFSCustomUtil {
 
    
     /**
-     * processHdfsQuery method is used to executes and fetch records from HDFS.
+     * This method is used to executes and fetch records from HDFS.
      *
      * @author ManishKumar
      * @version 1.0
@@ -151,7 +151,7 @@ public class HDFSCustomUtil {
     
     
     /**
-     * collectViolations method is used to process HDFS data and generate EEO object List.
+     * This method is used to process HDFS data and generate EEO object List.
      *
      * @author ManishKumar
      * @version 1.0
