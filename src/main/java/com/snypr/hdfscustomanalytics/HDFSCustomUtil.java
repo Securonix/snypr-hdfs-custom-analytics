@@ -1,342 +1,11 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package com.snypr.hdfscustomanalytics;
 
-import com.securonix.application.common.CommonUtility;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.ACCOUNTBLACKLISTED;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.ACCOUNTCREATEDDATE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.ACCOUNTCRITICALITY;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.ACCOUNTDISABLEDDATE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.ACCOUNTENCRYPTED;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.ACCOUNTNAME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.ACCOUNTOWNER;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.ACCOUNTSTATUS;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.ACCOUNTTYPE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.ACCOUNTWHITELISTED;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.ALERTID;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.APPLICATIONPROTOCOL;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.BASEEVENTCOUNT;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.BASEEVENTID;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.BYTESIN;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.BYTESOUT;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.CATEGORIZEDTIME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.CATEGORYBEHAVIOR;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.CATEGORYOBJECT;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.CATEGORYOUTCOME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.CATEGORYSEVERITY;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.CLASSIFICATION;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.CUSTOMNUMBER1;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.CUSTOMNUMBER2;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.CUSTOMNUMBER3;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.CUSTOMSTRING1;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.CUSTOMSTRING2;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.CUSTOMSTRING3;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DAYOFMONTH;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DAYOFWEEK;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DAYOFYEAR;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DESTINATIONADDRESS;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DESTINATIONDNSDOMAIN;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DESTINATIONHOSTNAME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DESTINATIONHOSTNAMECITY;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DESTINATIONHOSTNAMECOUNTRY;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DESTINATIONHOSTNAMELATITUDE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DESTINATIONHOSTNAMELONGITUDE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DESTINATIONHOSTNAMEPOSTALCODE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DESTINATIONHOSTNAMEREGION;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DESTINATIONMACADDRESS;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DESTINATIONNTDOMAIN;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DESTINATIONPORT;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DESTINATIONPROCESSID;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DESTINATIONPROCESSNAME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DESTINATIONUSERID;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DESTINATIONUSERNAME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DESTINATIONUSERPRIVILEGES;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DEVICEACTION;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DEVICEADDRESS;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DEVICEEVENTCATEGORY;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DEVICEEXTERNALID;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DEVICEHOSTNAME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DEVICEHOSTNAMECITY;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DEVICEHOSTNAMECOUNTRY;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DEVICEHOSTNAMELATITUDE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DEVICEHOSTNAMELONGITUDE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DEVICEHOSTNAMEPOSTALCODE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DEVICEHOSTNAMEREGION;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DEVICEINBOUNDINTERFACE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DEVICEOUTBOUNDINTERFACE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DEVICEPROCESSID;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DEVICEPROCESSNAME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.DEVICESEVERITY;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.EMAILRECIPIENT;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.EMAILRECIPIENTDOMAIN;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.EMAILRECIPIENTTYPE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.EMAILSENDER;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.EMAILSENDERDOMAIN;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.EMAILSUBJECT;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.EVENTCITY;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.EVENTCOUNT;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.EVENTCOUNTRY;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.EVENTID;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.EVENTLATITUDE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.EVENTLONGITUDE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.EVENTOUTCOME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.EVENTREGION;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.EVENTTIME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.FILECREATETIME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.FILEMODIFICATIONTIME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.FILENAME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.FILEPATH;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.FILESIZE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.FILETYPE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.FLOWSIEMID;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.HOUR;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.IPADDRESS;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.MESSAGE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.MINUTE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.MONTH;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.OLDFILECREATETIME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.OLDFILEHASH;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.OLDFILENAME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.OLDFILEPATH;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.OLDFILEPERMISSION;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.OLDFILESIZE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.OLDFILETYPE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.OTHERS;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.POSTALCODE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RAWEVENT;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.REQUESTCLIENTAPPLICATION;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.REQUESTCONTEXT;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.REQUESTMETHOD;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.REQUESTURL;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RESOURCECOMMENTS;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RESOURCECUSTOMFIELD1;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RESOURCECUSTOMFIELD2;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RESOURCECUSTOMFIELD3;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RESOURCECUSTOMFIELD4;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RESOURCECUSTOMFIELD5;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RESOURCECUSTOMFIELD6;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RESOURCECUSTOMFIELD7;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RESOURCECUSTOMFIELD8;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RESOURCEHIERARCHY;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RESOURCEHIERARCHYNAME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RESOURCEHOSTNAME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RESOURCEHOSTNAMECITY;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RESOURCEHOSTNAMECOUNTRY;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RESOURCEHOSTNAMELATITUDE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RESOURCEHOSTNAMELONGITUDE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RESOURCEHOSTNAMEPOSTALCODE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RESOURCEHOSTNAMEREGION;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RESOURCENAME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RESOURCESTATUS;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RESOURCETYPE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RG_AGGREGATELEVEL;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RG_AMOUNTROUNDUPVALUE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RG_CATEGORY;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RG_CLUSTERID;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RG_CRITICALITY;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RG_CUSTOMERID;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RG_DEVICEID;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RG_FUNCTIONALITY;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RG_ID;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RG_IPADDRESS;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RG_NAME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RG_OWNERID;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RG_PARENTID;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RG_PARENTSTATUS;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RG_RESOURCETYPEID;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RG_RETAINEDACCESSENTITLEMENTS;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RG_RISKSCORE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RG_SYSLOGENABLED;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RG_SYSLOGPORT;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RG_TIMEZONEOFFSET;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RG_TYPE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.RG_VENDOR;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.SESSIONID;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.SIEMID;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.SOURCEADDRESS;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.SOURCEHOSTNAME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.SOURCEHOSTNAMECITY;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.SOURCEHOSTNAMECOUNTRY;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.SOURCEHOSTNAMELATITUDE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.SOURCEHOSTNAMELONGITUDE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.SOURCEHOSTNAMEPOSTALCODE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.SOURCEHOSTNAMEREGION;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.SOURCEMACADDRESS;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.SOURCENTDOMAIN;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.SOURCEPORT;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.SOURCEPROCESSID;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.SOURCEPROCESSNAME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.SOURCEUSERPRIVILEGES;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TENANTNAME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TPI_ACTION;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TPI_ADDR;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TPI_CATEGORY;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TPI_CRITICALITY;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TPI_DATE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TPI_DESCRIPTION;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TPI_DOMAIN;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TPI_FILENAME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TPI_INDICATORS;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TPI_MALWARE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TPI_REASON;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TPI_RECOMMENDATION;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TPI_RESOLUTION;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TPI_RISK;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TPI_SRC;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TPI_TEXT;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TPI_TYPE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TPI_VERSION;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TRANSACTIONNUMBER1;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TRANSACTIONNUMBER2;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TRANSACTIONNUMBER3;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TRANSACTIONNUMBER4;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TRANSACTIONNUMBER5;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TRANSACTIONSTRING1;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TRANSACTIONSTRING2;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TRANSACTIONSTRING3;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TRANSACTIONSTRING4;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TRANSACTIONSTRING5;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TRANSACTIONSTRING6;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TRANSLATEDIPADDRESS;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TRANSLATEDPORT;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.TRANSPORTPROTOCOL;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_APPROVEREMPLOYEEID;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CITY;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_COMMENTS;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_COMPANYCODE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_COMPANYNUMBER;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CONTRACTENDDATE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CONTRACTSTARTDATE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_COSTCENTERCODE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_COSTCENTERNAME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_COUNTRY;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CREATEDATE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CREATEDBY;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CRITICALITY;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CUSTOMFIELD1;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CUSTOMFIELD10;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CUSTOMFIELD11;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CUSTOMFIELD12;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CUSTOMFIELD13;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CUSTOMFIELD14;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CUSTOMFIELD15;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CUSTOMFIELD16;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CUSTOMFIELD17;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CUSTOMFIELD18;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CUSTOMFIELD19;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CUSTOMFIELD2;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CUSTOMFIELD20;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CUSTOMFIELD21;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CUSTOMFIELD22;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CUSTOMFIELD23;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CUSTOMFIELD24;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CUSTOMFIELD25;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CUSTOMFIELD26;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CUSTOMFIELD27;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CUSTOMFIELD28;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CUSTOMFIELD29;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CUSTOMFIELD3;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CUSTOMFIELD30;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CUSTOMFIELD4;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CUSTOMFIELD5;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CUSTOMFIELD6;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CUSTOMFIELD7;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CUSTOMFIELD8;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_CUSTOMFIELD9;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_DATASOURCEID;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_DELEGATEEMPLOYEEID;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_DELETEDATE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_DEPARTMENT;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_DISABLEDATE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_DIVISION;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_DOMINTLIN;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_EMPLOYEEID;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_EMPLOYEESTATUSCODE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_EMPLOYEETYPE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_EMPLOYEETYPEDESCRIPTION;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_ENABLEDATE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_ENCRYPTED;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_ENCRYPTEDFIELDS;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_EXTENSION;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_FAX;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_FIRSTNAME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_FULLTIMEPARTTIMEIN;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_HIERARCHY;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_HIREDATE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_ID;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_JOBCODE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_LANID;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_LASTDAYWORKED;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_LASTNAME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_LASTPERFORMANCEREVIEWDATE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_LASTPERFORMANCEREVIEWRESULT;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_LASTSYNCTIME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_LOCATION;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_LOCATIONCODE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_LOCATIONNAME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_MAILCODE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_MANAGEREMPLOYEEID;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_MANAGERFIRSTNAME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_MANAGERLASTNAME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_MANAGERMIDDLENAME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_MASKED;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_MASKEDFIELDS;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_MERGEUNIQUECODE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_MIDDLENAME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_MOBILE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_NAMEPREFIX;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_NAMESUFFIX;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_NETWORKID;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_ORGUNITNUMBER;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_PAGER;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_PREFERREDNAME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_PROMOTED;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_PROVINCE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_RECENTHIREDATE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_REGION;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_REGTEMPIN;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_REHIREDATE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_RISKSCORE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_SECONDARYPHONE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_SHIFTCODE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_SHIFTNAME;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_SKIPENCRYPTION;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_STANDARDHOURS;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_STATUS;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_STATUSDESCRIPTION;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_STREET;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_SUNRISEDATE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_SUNSETDATE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_TECHNICALAPPROVERID;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_TERMINATIONDATE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_TIMEZONEOFFSET;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_TITLE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_TRANSFERREDDATE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_UNIQUECODE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_UPDATEDATE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_USERGROUP;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_USERID;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_USERSTATE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_VACATIONEND;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_VACATIONSTART;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_WORKEMAIL;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_WORKEXTENSIONNUMBER;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_WORKFAX;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_WORKPAGER;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_WORKPHONE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.U_ZIPCODE;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.WEEK;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.YEAR;
-import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.ZONE;
+import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.*;
 import com.securonix.application.hibernate.tables.PolicyMaster;
 import com.securonix.application.impala.ImpalaDbUtil;
 import com.securonix.application.policy.PolicyConstants;
 import static com.securonix.application.policy.PolicyConstants.BATCH_SIZE;
 import com.securonix.snyper.common.EnrichedEventObject;
-import com.securonix.snyper.config.beans.TenantConfigBean;
 import com.securonix.snyper.policy.beans.violations.Violation;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -347,8 +16,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * This class includes all required utility methods,those are used to perform
- * custom analytics and processing of violations data.
+ * This class includes all required utility methods,those are used to perform custom analytics and processing of
+ * violations data.
  *
  * @author manishkumar
  */
@@ -365,10 +34,9 @@ public class HDFSCustomUtil {
         List<HashMap<String, Object>> violationEvents = null;
 
         // violationQuery is sample query, which is used to get violation entities.
-        final String violationQuery = "select activityaccount, dayofyear, year, count(frequency),ipaddres from resourcesincoming where message=“Failed Password” group by ipaddres,activitaccount,dayofyear,year having count(frequency)>5";
+        final String violationQuery = "select accountname, year, month, dayofmonth, hour, minute from securonixresource162incoming where transactionstring1='LOGON FAILED' group by accountname, year, month, dayofmonth, hour, minute having count(accountname)>5";
 
         try {
-
             // Get violations entiteis from HDFS
             violationEvents = ImpalaDbUtil.executeQuery(violationQuery);
         } catch (Exception ex) {
@@ -379,21 +47,16 @@ public class HDFSCustomUtil {
 
             for (HashMap<String, Object> violationEvent : violationEvents) {
 
-                // Get violationaccount
-                String violationaccount = (String) violationEvent.get("activityaccount");
+                String account = (String) violationEvent.get("accountname");
+                String year = (String) violationEvent.get("year");
+                String month = (String) violationEvent.get("month");
+                String day = (String) violationEvent.get("dayofmonth");
+                String hour = (String) violationEvent.get("hour");
+                String minute = (String) violationEvent.get("minute");
 
-                // Get violationdayofyear
-                String violationdayofyear = (String) violationEvent.get("dayofyear");
+                String violationDetailQuery = "select * from securonixresource162incoming where accountname='" + account + "' and year=" + year + " and month=" + month + " and dayofmonth=" + day + " and hour =" + hour + " and minute=" + minute;
 
-                // Get violationyear
-                String violationyear = (String) violationEvent.get("year");
-
-                // Get violationipaddress
-                String violationipaddress = (String) violationEvent.get("ipaddres");
-
-                // violationDetailQuery is formmed with all above variables.This query is used to get complete violation details.
-                String violationDetailQuery = "select * from resourcesincoming where activityaccount=" + violationaccount + "and dayofyear=" + violationdayofyear + "and year=" + violationyear + "and ipaddress=" + violationipaddress + "";
-
+                LOGGER.debug("Query- {}", violationDetailQuery);
                 try {
                     processHdfsQuery(violationDetailQuery);
                 } catch (Exception ex) {
@@ -404,14 +67,6 @@ public class HDFSCustomUtil {
 
         } else {
             LOGGER.info("No Violation found");
-        }
-
-        LOGGER.debug(" Violations found # {}", violationList.size());
-        
-        //violationList is published to violations topic
-
-        if (!violationList.isEmpty()) {
-            HDFSCustomExecutor.eeoProducer.publish(violationList, HDFSCustomExecutor.violationTopic);
         }
 
     }
@@ -465,20 +120,13 @@ public class HDFSCustomUtil {
     public static void collectViolations(final Iterator<HashMap<String, Object>> iterator) {
 
         LOGGER.debug("[Updating violations ..");
-        
+
         // eeo object will have complete event details (along-with violations details) 
-        
         EnrichedEventObject eeo;
-        
+
         // violations : this will have violations details with-in eeo object 
-        
         List<Violation> violations;
         Violation v;
-
-        final TenantConfigBean tcb = HDFSCustomExecutor.hcb.getTenantConfigBean();
-        final long tenantId = tcb.getDefaultTenantId();
-        final String tenantName = tcb.getDefaultTenant();
-        final String tenantTz = CommonUtility.getApplicationTimezone().getID();
 
         final Long policyId = HDFSCustomExecutor.policy.getId();
         final String policyName = HDFSCustomExecutor.policy.getName();
@@ -490,15 +138,12 @@ public class HDFSCustomUtil {
         final Integer categoryid = HDFSCustomExecutor.policy.getCategoryid();
         final String category = HDFSCustomExecutor.policy.getCategory();
         final double riskScore = PolicyConstants.CRITICALITY_MAP.get(HDFSCustomExecutor.policy.getCriticality());
+
         while (iterator.hasNext()) {
 
             eeo = new EnrichedEventObject();
-            eeo.setTenantTz(tenantTz);
-            eeo.setTenantid(tenantId);
-            eeo.setTenantname(tenantName);
-            
-            // populate eeo object with the help of HDFS details
 
+            // populate eeo object with the help of HDFS details
             populateEEO(iterator.next(), eeo);
 
             eeo.setViolations(violations = new ArrayList<>());
@@ -511,17 +156,21 @@ public class HDFSCustomUtil {
             v.setCategoryId(categoryid);
             v.setCategory(category);
             v.setRiskScore(riskScore);
-            
+
             // eeo object is added to violationList
-            
             violationList.add(eeo);
         }
+
+        if (!violationList.isEmpty()) {
+            HDFSCustomExecutor.eeoProducer.publish(violationList, HDFSCustomExecutor.violationTopic);
+            LOGGER.debug("Violations published # {}", violationList.size());
+            violationList.clear();
+        }
     }
-    
+
     /*
     This method is used to create eeo object by using HDFS details
-    */
-
+     */
     private static void populateEEO(final Map<String, Object> map, final EnrichedEventObject eeo) {
 
         Object o;
@@ -2222,6 +1871,13 @@ public class HDFSCustomUtil {
         if ((o = map.get(TENANTNAME)) != null) {
             eeo.setTenantname((String) o);
         }
+        if ((o = map.get(TENANTTZ)) != null) {
+            eeo.setTenantTz((String) o);
+        }
+        if ((o = map.get(TENANTID)) != null) {
+            eeo.setTenantid(Long.parseLong((String) o));
+        }
+
         if ((o = map.get(OLDFILEPERMISSION)) != null) {
             eeo.setOldfilepermission((String) o);
         }
