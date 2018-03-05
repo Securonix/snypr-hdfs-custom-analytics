@@ -1,22 +1,38 @@
 package com.snypr.hdfscustomanalytics;
 
+import com.securonix.application.common.CommonUtility;
 import com.securonix.application.hibernate.tables.PolicyMaster;
 import com.securonix.application.impala.ImpalaDbUtil;
 import com.securonix.application.policy.PolicyConstants;
 import static com.securonix.application.policy.PolicyConstants.BATCH_SIZE;
+import com.securonix.application.profiler.uiUtil.JAXBUtilImpl;
+import com.securonix.application.suspect.ViolationInfoBuildUtil;
 import com.securonix.snyper.common.EnrichedEventObject;
+import com.securonix.snyper.policy.beans.ViolationDisplayConfigBean;
 import com.securonix.snyper.policy.beans.violations.Violation;
+import com.securonix.snyper.util.DateUtil;
+import com.securonix.snyper.violationinfo.beans.VerboseInfoDetails;
+import com.securonix.snyper.violationinfo.beans.ViolationDetails;
+import com.securonix.snyper.violationinfo.beans.ViolationDetailsFactory;
+import com.securonix.snyper.violationinfo.beans.ViolationDetailsTree;
+import com.securonix.snyper.violationinfo.beans.ViolationInfo;
+import com.securonix.snyper.violationinfo.beans.ViolationInfoConstants;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import scala.Tuple2;
 
 /**
- * This HDFSCustomUtil class executes custom query and detect violations from HDFS.
- * The violations are published to the violation topic for downstream risk scoring.
- * @see <code>publish</code> method in the <code>com.securonix.kafkaclient.producers.EEOProducer</code> module
+ * This HDFSCustomUtil class executes custom query and detect violations from
+ * HDFS. The violations are published to the violation topic for downstream risk
+ * scoring.
+ *
+ * @see <code>publish</code> method in the
+ * <code>com.securonix.kafkaclient.producers.EEOProducer</code> module
  * @author ManishKumar
  * @version 1.0
  * @since 2017-03-31
@@ -27,17 +43,20 @@ public class HDFSCustomUtil {
 
     // violationList is used to collect all the violations data.
     private final static List<EnrichedEventObject> violationList = new ArrayList<>();
-    
-   /**
-     * executeCustomPolicy method is used to executes custom query on HDFS.
-     * EEO object gets generated from HDFS records.Detected violations get publish into the Violation Topic.
+    private static final HashMap<Long, Tuple2<ViolationDisplayConfigBean, List<String>>> vInfoConfig = new HashMap<>();
+
+    /**
+     * executeCustomPolicy method is used to executes custom query on HDFS. EEO
+     * object gets generated from HDFS records.Detected violations get publish
+     * into the Violation Topic.
+     *
      * @throws java.lang.Exception
      * @author ManishKumar
      * @version 1.0
      * @since 2017-03-31
-     * @see <code>publish</code> in the <code>com.securonix.kafkaclient.producers.EEOProducer</code> module
+     * @see <code>publish</code> in the
+     * <code>com.securonix.kafkaclient.producers.EEOProducer</code> module
      */
-
     public static void executeCustomPolicy(PolicyMaster policy) throws Exception {
 
         // violationEvents is used to collect all the events, which are detected as violations.
@@ -134,10 +153,10 @@ public class HDFSCustomUtil {
         // eeo object will have complete event details (along-with violations details) 
         EnrichedEventObject eeo;
 
-        // violations : this will have violations details with-in eeo object 
-        List<Violation> violations;
+        ViolationInfo vi;
         Violation v;
-
+        HashMap<Long, Map<String, ViolationDetails>> vdDetails;
+        List<Violation> violations;
         final Long policyId = HDFSCustomExecutor.policy.getId();
         final String policyName = HDFSCustomExecutor.policy.getName();
 
@@ -148,6 +167,13 @@ public class HDFSCustomUtil {
         final Integer categoryid = HDFSCustomExecutor.policy.getCategoryid();
         final String category = HDFSCustomExecutor.policy.getCategory();
         final double riskScore = PolicyConstants.CRITICALITY_MAP.get(HDFSCustomExecutor.policy.getCriticality());
+        String violationdisplayconfig = HDFSCustomExecutor.policy.getViolationdisplayconfig();
+        if (violationdisplayconfig != null && !violationdisplayconfig.isEmpty()) {
+            List<ViolationDisplayConfigBean> displayConfigBeans = JAXBUtilImpl.xmlToPojos(violationdisplayconfig, ViolationDisplayConfigBean.class);
+            ViolationDisplayConfigBean displayConfigBean = !displayConfigBeans.isEmpty() ? displayConfigBeans.get(0) : null;
+            List<String> parseTemplate = (HDFSCustomExecutor.policy.getVerboseinfotemplate() != null && !HDFSCustomExecutor.policy.getVerboseinfotemplate().isEmpty()) ? CommonUtility.parseTemplate(HDFSCustomExecutor.policy.getVerboseinfotemplate()) : new ArrayList<>();
+            vInfoConfig.put(policyId, new Tuple2<>(displayConfigBean, parseTemplate));
+        }
 
         while (iterator.hasNext()) {
 
@@ -165,6 +191,55 @@ public class HDFSCustomUtil {
             v.setRiskTypeId(riskTypeId);
             v.setCategoryId(categoryid);
             v.setCategory(category);
+
+            // Generated Violation Info
+            vdDetails = new HashMap<>();
+            vi = new ViolationInfo();
+            //Deafult Violation info Forms a tree Structure
+            String groupingAttribute = null;
+            String lvl2Attribute = null;
+            List<String> metaDataList = null;
+            List<String> level2MetaDataList = null;
+
+            List<String> verboseKeys = null;
+            if (vInfoConfig != null && vInfoConfig.containsKey(policyId)) {
+                Tuple2<ViolationDisplayConfigBean, List<String>> vInfoDisplayConfig = vInfoConfig.get(policyId);
+
+                if (vInfoConfig.get(policyId)._1() != null) {
+                    if (vInfoDisplayConfig._1().getDisplayAttributes() != null && !vInfoDisplayConfig._1().getDisplayAttributes().isEmpty()) {
+                        groupingAttribute = vInfoDisplayConfig._1().getDisplayAttributes().get(0);
+                    }
+                    lvl2Attribute = vInfoDisplayConfig._1().getLevel2Attributes();
+                    metaDataList = vInfoDisplayConfig._1().getMetadataAttributes();
+                    level2MetaDataList = vInfoDisplayConfig._1().getLevel2MetaDataAttr();
+                }
+                if (vInfoConfig.get(policyId)._2() != null) {
+                    verboseKeys = vInfoDisplayConfig._2();
+                }
+            }
+
+            final Map<String, Object> params = new HashMap<>();
+            params.put(ViolationInfoConstants.FUNCTION_TYPE, ViolationInfoConstants.TREEPOLICYTYPE);
+            params.put(ViolationDetailsTree.PARAMS.GROUP_ATTRIBUTE.name(), groupingAttribute);
+            params.put(ViolationDetailsTree.PARAMS.LVL2_ATTRIBUTE.name(), lvl2Attribute);
+            params.put(ViolationDetailsTree.PARAMS.METADATA_LIST.name(), metaDataList);
+            params.put(ViolationDetailsTree.PARAMS.LVL2_METADATA.name(), level2MetaDataList);
+
+            Map<String, ViolationDetails> buildViolationDetailsFromViolation = ViolationDetailsFactory.getViolationDetails(ViolationInfoConstants.TREEPOLICYTYPE, eeo, params);
+
+            if (buildViolationDetailsFromViolation != null) {
+                vdDetails.put(DateUtil.getScrubbedEpochTimeForDay(eeo.getTenantTz() != null ? eeo.getTenantTz() : "GMT", v.getGenerationTime()), buildViolationDetailsFromViolation);
+            }
+
+            vi.setViolationDetails(vdDetails);
+
+            HashMap<Long, Map<String, VerboseInfoDetails>> verboseDetails = new HashMap<>();
+            verboseDetails.put(DateUtil.getScrubbedEpochTimeForDay(eeo.getTenantTz() != null ? eeo.getTenantTz() : "GMT", v.getGenerationTime()), ViolationInfoBuildUtil.buildVerbosKeyValueMap(eeo, verboseKeys));
+
+            vi.setVerbosKeyValueMap(verboseDetails);
+
+            v.setViolationInfo(vi);
+
             v.setRiskScore(riskScore);
 
             // eeo object is added to violationList
