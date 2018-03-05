@@ -8,7 +8,7 @@ import org.apache.logging.log4j.Logger;
 
 /**
  * The EEOUtil class provides a method to generate EEO object.
- * record. record.
+ *
  * @author ManishKumar
  * @version 1.0
  * @since 2017-03-31
@@ -17,8 +17,14 @@ public class EEOUtil {
 
     private final static Logger LOGGER = LogManager.getLogger();
 
-    /*
-    This method is used to create eeo object with help of HDFS record.
+    /**
+     * populateEEO method is used to create EEO object with help of HDFS record.
+     *
+     * @author ManishKumar
+     * @version 1.0
+     * @param map parameter used to create EEO object
+     * @param eeo 
+     * @since 2017-03-31
      */
     public static void populateEEO(final Map<String, Object> map, final EnrichedEventObject eeo) {
 
