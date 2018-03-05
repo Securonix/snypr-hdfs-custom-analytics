@@ -105,7 +105,7 @@ public class HDFSCustomUtil {
      *
      * @author ManishKumar
      * @version 1.0
-     * @param query parameter is used to fetch records from HDFS.
+     * @param query this parameter is used to fetch records from HDFS.
      * @since 2017-03-31
      */
     
@@ -155,13 +155,10 @@ public class HDFSCustomUtil {
      *
      * @author ManishKumar
      * @version 1.0
-     * @param iterator parameter is used to  have reference of each HDFS record.  
+     * @param iterator this parameter is used to have references of each HDFS record.  
      * @since 2017-03-31
      */
 
-    /*
-    This methid is used to process HDFS data and generate/collect violations
-     */
     public static void collectViolations(final Iterator<HashMap<String, Object>> iterator) {
 
         LOGGER.debug("[Updating violations ..");
