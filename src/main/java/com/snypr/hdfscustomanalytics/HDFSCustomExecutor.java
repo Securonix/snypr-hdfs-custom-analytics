@@ -108,7 +108,7 @@ public class HDFSCustomExecutor {
         eeoProducer = (EEOProducer) KafkaProducerFactory.INSTANCE.getProducer(KafkaProducerFactory.TYPE_OF_MESSAGE.EEO, kafkaConfigBean, props);
 
         // Start processing for custom analytics 
-        HDFSCustomUtil.executeCustomPolicy(policy);
+        HDFSCustomUtil.executeCustomPolicy();
     }
 
 }
