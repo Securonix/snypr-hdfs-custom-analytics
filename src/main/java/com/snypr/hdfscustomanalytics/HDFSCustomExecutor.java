@@ -17,10 +17,17 @@ import java.util.Properties;
 import java.util.Set;
 
 /**
- * This class is used to perform custom analytics on HDFS data. The detected violations would be published to violations
- * topic.
+ * <h1>HDFS Custom Spark Analyzer for SNYPR</h1>
+ * The HDFSCustomExecutor class provides an example to write a Spark Application
+ * that can be launched within the SNYPR cluster to enable users to write their
+ * own analytics. This HDFSCustomExecutor class execute custom query and detect
+ * violations from The HDFS. The violations are published to the violation topic
+ * for downstream risk scoring.. The violations are published to the violation
+ * topic for downstream risk scoring.
  *
- * @author manishkumar
+ * @author ManishKumar
+ * @version 1.0
+ * @since 2017-03-31
  */
 public class HDFSCustomExecutor {
 
@@ -35,12 +42,15 @@ public class HDFSCustomExecutor {
     /**
      * Entry point for the job, expect policy Id
      *
-     * @param args Command line arguments
-     *
-     * @throws Exception
+     * @param args Arguments passed to the main method by the Spark Submit
+     * @throws java.lang.Exception
+     * @author ManishKumar
+     * @version 1.0
+     * @since 2017-03-31
      */
     public static void main(String args[]) throws Exception {
 
+        // Extract arguments passed to Main Method
         final Map<String, String> argumentsMap = SnyperUtil.extractArguments(args);
 
         if (!argumentsMap.containsKey("-pId")) {
@@ -50,30 +60,33 @@ public class HDFSCustomExecutor {
             System.err.println("\t-pId\t\tPolicy Id");
             System.err.println("Optional:");
 
-            System.err.println(); // a blank line!
+            System.err.println();
             System.exit(-1);
         }
 
-        // Get Hadoop configuration
+        // Read Hadoop Settings from SNYPR database. This has all connection details for various hadoop components including Kafka & HBase
+        //If Hadoop settings are not available, Spark job will fail to start up.
         hcb = HadoopConfigUtil.getHadoopConfiguration();
         if (hcb == null) {
             System.err.println("Unable to obtain Hadoop configuration\n");
             System.exit(1);
         }
 
-        // Get Kafka configuration from hadoop bean
+        // Extract Kafka connection details
+         //If Kafka settings are not available, Spark job will fail to start up.
         KafkaConfigBean kafkaConfigBean = hcb.getKafkaConfigBean();
         if (kafkaConfigBean == null) {
             System.err.println("\nERROR: Unable to obtain Kafka configuration\n");
             System.exit(-1);
         }
 
-        // Get violation topic from kafka configuration
+        // Extract Violation Topic from Kafka connection details.
         final Set<String> topicsSet = new HashSet<>(Arrays.asList(kafkaConfigBean.getViolationTopic().split(",")));
         violationTopic = topicsSet.iterator().next();
         LOGGER.debug("Violation topic- {}", violationTopic);
 
         // Get policyId from VM arguments of job's run sricpt.
+        //If policyId is not available, Spark job will fail to start up.
         long policyId = 0;
         try {
             policyId = Integer.parseInt(argumentsMap.get("-pId"));
