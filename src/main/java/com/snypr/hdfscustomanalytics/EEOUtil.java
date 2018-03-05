@@ -22,8 +22,8 @@ public class EEOUtil {
      *
      * @author ManishKumar
      * @version 1.0
-     * @param map parameter used to create EEO object
-     * @param eeo 
+     * @param map this parameter used to create EEO object
+     * @param eeo this parameter contains all details regarding event and violation.
      * @since 2017-03-31
      */
     public static void populateEEO(final Map<String, Object> map, final EnrichedEventObject eeo) {
