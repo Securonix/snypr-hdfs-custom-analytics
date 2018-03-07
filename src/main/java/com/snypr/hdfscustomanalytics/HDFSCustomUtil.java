@@ -4,7 +4,9 @@ import com.securonix.application.common.CommonUtility;
 import com.securonix.application.impala.ImpalaDbUtil;
 import com.securonix.application.policy.PolicyConstants;
 import static com.securonix.application.policy.PolicyConstants.BATCH_SIZE;
-import com.securonix.application.profiler.uiUtil.JAXBUtilImpl;
+import com.securonix.application.common.JAXBUtilImpl;
+import com.securonix.application.hibernate.tables.Resourcegroups;
+import com.securonix.application.hibernate.util.DbUtil;
 import com.securonix.application.suspect.ViolationInfoBuildUtil;
 import com.securonix.snyper.common.EnrichedEventObject;
 import com.securonix.snyper.policy.beans.ViolationDisplayConfigBean;
@@ -45,9 +47,9 @@ public class HDFSCustomUtil {
     private static final HashMap<Long, Tuple2<ViolationDisplayConfigBean, List<String>>> vInfoConfig = new HashMap<>();
 
     /**
-     * This method is used to executes custom query on HDFS. EEO
-     * object gets generated from HDFS records.Detected violations get publish
-     * into the Violation Topic.
+     * This method is used to executes custom query on HDFS. EEO object gets
+     * generated from HDFS records.Detected violations get publish into the
+     * Violation Topic.
      *
      * @throws java.lang.Exception
      * @author ManishKumar
@@ -56,50 +58,60 @@ public class HDFSCustomUtil {
      * @see <code>publish</code> in the
      * <code>com.securonix.kafkaclient.producers.EEOProducer</code> module
      */
-    public static void executeCustomPolicy() throws Exception {
+    public static void executeManualCustomPolicy() throws Exception {
 
-        // violationEvents is used to collect all the events, which are detected as violations.
-        List<HashMap<String, Object>> violationEvents = null;
+        for (long rgId : HDFSCustomPolicyAnalyzer.functionlityEnabledRG) {
 
-        // violationQuery is sample query, which is used to get violation entities.
-        final String violationQuery = "select accountname, year, month, dayofmonth, hour, minute from securonixresource162incoming where transactionstring1='LOGON FAILED' group by accountname, year, month, dayofmonth, hour, minute having count(accountname)>5";
+            try {
 
-        try {
-            // Get violations entiteis from HDFS
-            violationEvents = ImpalaDbUtil.executeQuery(violationQuery);
-        } catch (Exception ex) {
-            LOGGER.error("Error getting results from HDFS ", ex);
-        }
+                LOGGER.debug("Processing starts for rgId [" + rgId + "]");
 
-        if (violationEvents != null && !violationEvents.isEmpty()) {
+                // violationEvents is used to collect all the events, which are detected as violations.
+                List<HashMap<String, Object>> violationEvents = null;
 
-            for (HashMap<String, Object> violationEvent : violationEvents) {
+                // violationQuery is sample query, which is used to get violation entities.
+             
+                final String violationQuery = "select count(accountname),accountname,ipaddress, year,dayofyear, hour, minute from activity" + rgId + "incoming where message='Logon Failed' group by accountname, ipaddress,year, dayofyear, hour, minute having count(accountname)>5";
 
-                String account = (String) violationEvent.get("accountname");
-                String year = (String) violationEvent.get("year");
-                String month = (String) violationEvent.get("month");
-                String day = (String) violationEvent.get("dayofmonth");
-                String hour = (String) violationEvent.get("hour");
-                String minute = (String) violationEvent.get("minute");
-
-                String violationDetailQuery = "select * from securonixresource162incoming where accountname='" + account + "' and year=" + year + " and month=" + month + " and dayofmonth=" + day + " and hour =" + hour + " and minute=" + minute;
-
-                LOGGER.debug("Query- {}", violationDetailQuery);
                 try {
-                    processHdfsQuery(violationDetailQuery);
+                    // Get violations entiteis from HDFS
+                    violationEvents = ImpalaDbUtil.executeQuery(violationQuery);
                 } catch (Exception ex) {
-                    LOGGER.warn("Unable to replace value in {}", violationDetailQuery, ex);
+                    LOGGER.error("Error getting results from HDFS ", ex);
                 }
 
-            }
+                if (violationEvents != null && !violationEvents.isEmpty()) {
 
-        } else {
-            LOGGER.info("No Violation found");
+                    for (HashMap<String, Object> violationEvent : violationEvents) {
+
+                        String account = (String) violationEvent.get("accountname");
+                        String year = (String) violationEvent.get("year");
+                        String dayofyear = (String) violationEvent.get("dayofyear");
+                        String srcip = (String) violationEvent.get("ipaddress");
+                        String hour = (String) violationEvent.get("hour");
+                        String minute = (String) violationEvent.get("minute");
+
+                        String violationDetailQuery = "select * from activity" + rgId + "incoming where message='Logon Failed' and accountname='" + account + "' and ipaddress='" + srcip + "' and year=" + year + " and dayofyear=" + dayofyear + " and hour =" + hour + " and minute=" + minute;
+
+                        LOGGER.debug("Query- {}", violationDetailQuery);
+                        try {
+                            processHdfsQuery(violationDetailQuery);
+                        } catch (Exception ex) {
+                            LOGGER.warn("Unable to replace value in {}", violationDetailQuery, ex);
+                        }
+
+                    }
+
+                } else {
+                    LOGGER.info("No Violation found");
+                }
+            } catch (Exception e) {
+                LOGGER.error("Failed to perform Custom Analytics for rgID [" + rgId + "]", e);
+            }
         }
 
     }
 
-   
     /**
      * This method is used to executes and fetch records from HDFS.
      *
@@ -108,7 +120,6 @@ public class HDFSCustomUtil {
      * @param query this parameter is used to fetch records from HDFS.
      * @since 2017-03-31
      */
-    
     public static void processHdfsQuery(final String query) {
 
         List<HashMap<String, Object>> events = null;
@@ -149,16 +160,58 @@ public class HDFSCustomUtil {
 
     }
     
-    
+    public static void executeCustomPolicy() throws Exception {
+
+        // violationEvents is used to collect all the events, which are detected as violations.
+        List<HashMap<String, Object>> violationEvents = null;
+
+        // violationQuery is sample query, which is used to get violation entities.
+        final String violationQuery = "select count(accountname), ipaddress,accountname,year, dayofyear, hour, minute from activity1incoming where message='Logon Failed' group by accountname, ipaddress,year, dayofyear, hour, minute having count(accountname)>5";
+
+        try {
+            // Get violations entiteis from HDFS
+            violationEvents = ImpalaDbUtil.executeQuery(violationQuery);
+        } catch (Exception ex) {
+            LOGGER.error("Error getting results from HDFS ", ex);
+        }
+
+        if (violationEvents != null && !violationEvents.isEmpty()) {
+
+            for (HashMap<String, Object> violationEvent : violationEvents) {
+
+                String account = (String) violationEvent.get("accountname");
+                String srcip = (String) violationEvent.get("ipaddress");
+                String year = (String) violationEvent.get("year");
+                String dayofyear = (String) violationEvent.get("dayofyear");
+                String hour = (String) violationEvent.get("hour");
+                String minute = (String) violationEvent.get("minute");
+                
+                String violationDetailQuery = "select * from activity1incoming where message='Logon Failed' and accountname='" + account + "' and ipaddress='" + srcip + "' and year=" + year + " and dayofyear=" + dayofyear + " and hour =" + hour + " and minute=" + minute;
+
+                LOGGER.debug("Query- {}", violationDetailQuery);
+                try {
+                    processHdfsQuery(violationDetailQuery);
+                } catch (Exception ex) {
+                    LOGGER.warn("Unable to replace value in {}", violationDetailQuery, ex);
+                }
+
+            }
+
+        } else {
+            LOGGER.info("No Violation found");
+        }
+
+    }
+
     /**
      * This method is used to process HDFS data and generate EEO object List.
      *
      * @author ManishKumar
      * @version 1.0
-     * @param iterator this parameter is used to have references of each HDFS record.  
+     * @param iterator this parameter is used to have references of each HDFS
+     * record.
      * @since 2017-03-31
      */
-
     public static void collectViolations(final Iterator<HashMap<String, Object>> iterator) {
 
         LOGGER.debug("[Updating violations ..");
@@ -264,6 +317,19 @@ public class HDFSCustomUtil {
             LOGGER.debug("Violations published # {}", violationList.size());
             violationList.clear();
         }
+    }
+
+    public static ArrayList<Long> getFunctionalityEnabledResourceGroup(String functionality) {
+        ArrayList<Long> functionalityEnabledRG = new ArrayList();
+
+        List resultList8 = DbUtil.executeHQLQuery("from ResourceGroups where functionality '" + functionality + "'");
+        for (Object o : resultList8) {
+            Object row = (Object) o;
+            Resourcegroups r = (Resourcegroups) row;
+            functionalityEnabledRG.add(r.getId());
+        }
+
+        return functionalityEnabledRG;
     }
 
 }

@@ -18,7 +18,7 @@ public class EEOUtil {
     private final static Logger LOGGER = LogManager.getLogger();
 
     /**
-     * populateEEO method is used to create EEO object with help of HDFS record.
+     * This method is used to create EEO object with help of HDFS record.
      *
      * @author ManishKumar
      * @version 1.0
