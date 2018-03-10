@@ -163,7 +163,7 @@ public class QueryProcessor {
             // populate eeo object with the help of HDFS details
             EEOUtil.populateEEO(iterator.next(), eeo);
 
-            eeo.setViolations(violations = new ArrayList<>());
+            eeo.setCustomViolations(violations = new ArrayList<>());
             violations.add(v = new Violation(policyId, policyName));
 
             v.setViolator(violator);
