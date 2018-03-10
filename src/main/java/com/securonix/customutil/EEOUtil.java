@@ -1,4 +1,4 @@
-package com.snypr.hdfscustomanalytics;
+package com.securonix.customutil;
 
 import static com.securonix.application.hadoop.uiUtil.websocket.MappedAttributeList.*;
 import com.securonix.snyper.common.EnrichedEventObject;

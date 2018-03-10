@@ -1,4 +1,4 @@
-package com.snypr.hdfscustomanalytics;
+package com.securonix.customutil;
 
 import com.securonix.application.common.CommonUtility;
 import com.securonix.application.impala.ImpalaDbUtil;

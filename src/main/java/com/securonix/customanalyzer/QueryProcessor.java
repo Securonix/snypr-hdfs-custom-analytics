@@ -1,4 +1,4 @@
-package com.securonix.hdfs;
+package com.securonix.customanalyzer;
 
 import com.securonix.application.common.CommonUtility;
 import com.securonix.application.common.JAXBUtilImpl;
@@ -21,7 +21,7 @@ import com.securonix.snyper.violationinfo.beans.ViolationDetailsFactory;
 import com.securonix.snyper.violationinfo.beans.ViolationDetailsTree;
 import com.securonix.snyper.violationinfo.beans.ViolationInfo;
 import com.securonix.snyper.violationinfo.beans.ViolationInfoConstants;
-import com.snypr.hdfscustomanalytics.EEOUtil;
+import com.securonix.customutil.EEOUtil;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -107,7 +107,7 @@ public class QueryProcessor {
                 LOGGER.debug("Total documents # {} Returned # {}", resultCount, events.size());
 
                 // process hdfs details and collect violations data
-                collectViolations(events.iterator());
+                publishViolations(events.iterator());
 
                 if (recordsAvailable = resultCount >= BATCH_SIZE) {
                     offset += BATCH_SIZE;
@@ -119,8 +119,11 @@ public class QueryProcessor {
     }
 
     private static final HashMap<Long, Tuple2<ViolationDisplayConfigBean, List<String>>> vInfoConfig = new HashMap<>();
+    
+    // DO NOT CHANGE BELOW
+    // To do: change name to PublishViolations
 
-    private void collectViolations(final Iterator<HashMap<String, Object>> iterator) {
+    private void publishViolations(final Iterator<HashMap<String, Object>> iterator) {
 
         LOGGER.debug("Updating violations ..");
 

@@ -1,5 +1,5 @@
 SPARK_KAFKA_VERSION=0.10 spark2-submit \
- --name "HDFS custom analyzer" \
+ --name "HDFS_custom_analyzer-1" \
  --driver-memory 1g \
  --num-executors 10 \
  --executor-memory 1g \
@@ -16,7 +16,7 @@ SPARK_KAFKA_VERSION=0.10 spark2-submit \
 --conf "spark.speculation=false" \
 --conf "spark.streaming.stopGracefullyOnShutdown=true" \
 --conf "spark.dynamicAllocation.enabled=false" \
---class com.securonix.hdfs.CustomAnalyzer \
+--class com.securonix.customanalyzer.CustomAnalyzerSparkJob \
 --files ./conf/hibernate.cfg.xml,./conf/log4j.properties,./conf/log4j2.xml,./conf/customanalyzer.properties \
 --master yarn \
 --deploy-mode cluster \

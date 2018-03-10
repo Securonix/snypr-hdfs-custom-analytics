@@ -1,10 +1,8 @@
-package com.securonix.hdfs;
+package com.securonix.customanalyzer;
 
 import com.securonix.application.hibernate.tables.PolicyMaster;
 import com.securonix.snyper.config.beans.HadoopConfigBean;
 import java.io.Serializable;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 /**
  * Wrapper used to broadcast and obtain query processor on the executor
