@@ -80,6 +80,8 @@ public class CustomAnalyzerHelper {
         policy.setEnabled(true);
 
         final ArrayList<Integer> categoryIds = new ArrayList();
+        categoryIds.add(categoryId);
+        
         policy.setCategoryid(categoryId);
 
         policy.setCategory(getCategoryName(categoryId));
