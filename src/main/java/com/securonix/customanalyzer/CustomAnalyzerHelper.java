@@ -48,7 +48,7 @@ public class CustomAnalyzerHelper {
      *
      * @return Policy object
      */
-    static PolicyMaster createPolicy(String policyName, String functionality, int categoryId, String riskThreatName, String criticality, String violator,
+    public static PolicyMaster createPolicy(String policyName, String functionality, int categoryId, String riskThreatName, String criticality, String violator,
             Map<String, String> violationInfo) {
 
         final long riskThreatId = RiskUtilImpl.getRiskThreatId(riskThreatName, "Medium", null);
@@ -80,6 +80,8 @@ public class CustomAnalyzerHelper {
         policy.setEnabled(true);
 
         final ArrayList<Integer> categoryIds = new ArrayList();
+        categoryIds.add(categoryId);
+        
         policy.setCategoryid(categoryId);
 
         policy.setCategory(getCategoryName(categoryId));
@@ -279,7 +281,7 @@ public class CustomAnalyzerHelper {
      *
      * @return List of resource group Ids for the given functionality type
      */
-    static List<Long> getResourceGroupsForFunctionality(final String functionality) {
+    public static List<Long> getResourceGroupsForFunctionality(final String functionality) {
 
         final List<Long> rgIds = new ArrayList();
 
@@ -291,7 +293,7 @@ public class CustomAnalyzerHelper {
         return rgIds;
     }
 
-    static Map<String, String> readViolationInfoProperties(final Properties props) {
+    public static Map<String, String> readViolationInfoProperties(final Properties props) {
 
         final Map<String, String> map = new HashMap<>();
 
