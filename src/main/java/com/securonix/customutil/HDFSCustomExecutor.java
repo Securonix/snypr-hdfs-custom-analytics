@@ -1,4 +1,4 @@
-package com.snypr.hdfscustomanalytics;
+package com.securonix.customutil;
 
 import com.securonix.application.hadoop.HadoopConfigUtil;
 import com.securonix.kafkaclient.producers.EEOProducer;

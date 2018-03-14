@@ -1,12 +1,17 @@
-package com.snypr.hdfscustomanalytics;
+package com.securonix.customanalyzer;
 
 import com.securonix.application.common.CommonUtility;
+import com.securonix.application.common.JAXBUtilImpl;
+import com.securonix.application.hibernate.tables.PolicyMaster;
 import com.securonix.application.impala.ImpalaDbUtil;
 import com.securonix.application.policy.PolicyConstants;
 import static com.securonix.application.policy.PolicyConstants.BATCH_SIZE;
-import com.securonix.application.profiler.uiUtil.JAXBUtilImpl;
 import com.securonix.application.suspect.ViolationInfoBuildUtil;
+import com.securonix.kafkaclient.producers.EEOProducer;
+import com.securonix.kafkaclient.producers.KafkaProducerFactory;
 import com.securonix.snyper.common.EnrichedEventObject;
+import com.securonix.snyper.config.beans.HadoopConfigBean;
+import com.securonix.snyper.config.beans.KafkaConfigBean;
 import com.securonix.snyper.policy.beans.ViolationDisplayConfigBean;
 import com.securonix.snyper.policy.beans.violations.Violation;
 import com.securonix.snyper.util.DateUtil;
@@ -16,100 +21,67 @@ import com.securonix.snyper.violationinfo.beans.ViolationDetailsFactory;
 import com.securonix.snyper.violationinfo.beans.ViolationDetailsTree;
 import com.securonix.snyper.violationinfo.beans.ViolationInfo;
 import com.securonix.snyper.violationinfo.beans.ViolationInfoConstants;
+import com.securonix.customutil.EEOUtil;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import scala.Tuple2;
 
 /**
- * This HDFSCustomUtil class executes custom query and detect violations from
- * HDFS. The violations are published to the violation topic for downstream risk
- * scoring.
+ * Fires query against HDFS, collects and publishes violations to the Kafka topic
  *
- * @see <code>publish</code> method in the
- * <code>com.securonix.kafkaclient.producers.EEOProducer</code> module
- * @author ManishKumar
- * @version 1.0
- * @since 2017-03-31
+ * @author Securonix Inc.
  */
-public class HDFSCustomUtil {
-
-    private final static Logger LOGGER = LogManager.getLogger();
-
-    // violationList is used to collect all the violations data.
-    private final static List<EnrichedEventObject> violationList = new ArrayList<>();
-    private static final HashMap<Long, Tuple2<ViolationDisplayConfigBean, List<String>>> vInfoConfig = new HashMap<>();
+public class QueryProcessor {
 
     /**
-     * This method is used to executes custom query on HDFS. EEO
-     * object gets generated from HDFS records.Detected violations get publish
-     * into the Violation Topic.
-     *
-     * @throws java.lang.Exception
-     * @author ManishKumar
-     * @version 1.0
-     * @since 2017-03-31
-     * @see <code>publish</code> in the
-     * <code>com.securonix.kafkaclient.producers.EEOProducer</code> module
+     * Logger for the class
      */
-    public static void executeCustomPolicy() throws Exception {
+    private final static Logger LOGGER = LogManager.getLogger();
+    /**
+     * Kafka producer to publish violations to the topic
+     */
+    private final EEOProducer eeoProducer;
+    /**
+     * Topic to which the violations are to be published
+     */
+    private final String violationTopic;
+    /**
+     * Policy configuration
+     */
+    private final PolicyMaster policy;
 
-        // violationEvents is used to collect all the events, which are detected as violations.
-        List<HashMap<String, Object>> violationEvents = null;
+    /**
+     * Accepts Hadoop and policy configurations, and initializes Kafka producer for publishing violations to the topic
+     *
+     * @param hcb Hadoop configuration
+     * @param policy Policy configuration
+     */
+    public QueryProcessor(final HadoopConfigBean hcb, final PolicyMaster policy) {
 
-        // violationQuery is sample query, which is used to get violation entities.
-        final String violationQuery = "select accountname, year, month, dayofmonth, hour, minute from securonixresource162incoming where transactionstring1='LOGON FAILED' group by accountname, year, month, dayofmonth, hour, minute having count(accountname)>5";
+        this.policy = policy;
+        final KafkaConfigBean kcb = hcb.getKafkaConfigBean();
+        this.violationTopic = kcb.getViolationTopic();
 
-        try {
-            // Get violations entiteis from HDFS
-            violationEvents = ImpalaDbUtil.executeQuery(violationQuery);
-        } catch (Exception ex) {
-            LOGGER.error("Error getting results from HDFS ", ex);
-        }
+        final Properties props = new Properties();
+        props.put("source", HadoopConfigBean.KAFKA_SOURCE.CLUSTER);
 
-        if (violationEvents != null && !violationEvents.isEmpty()) {
+        eeoProducer = (EEOProducer) KafkaProducerFactory.INSTANCE.getProducer(KafkaProducerFactory.TYPE_OF_MESSAGE.EEO, kcb, props);
 
-            for (HashMap<String, Object> violationEvent : violationEvents) {
-
-                String account = (String) violationEvent.get("accountname");
-                String year = (String) violationEvent.get("year");
-                String month = (String) violationEvent.get("month");
-                String day = (String) violationEvent.get("dayofmonth");
-                String hour = (String) violationEvent.get("hour");
-                String minute = (String) violationEvent.get("minute");
-
-                String violationDetailQuery = "select * from securonixresource162incoming where accountname='" + account + "' and year=" + year + " and month=" + month + " and dayofmonth=" + day + " and hour =" + hour + " and minute=" + minute;
-
-                LOGGER.debug("Query- {}", violationDetailQuery);
-                try {
-                    processHdfsQuery(violationDetailQuery);
-                } catch (Exception ex) {
-                    LOGGER.warn("Unable to replace value in {}", violationDetailQuery, ex);
-                }
-
-            }
-
-        } else {
-            LOGGER.info("No Violation found");
-        }
-
+        LOGGER.debug("Query processor initialized!");
     }
 
-   
     /**
-     * This method is used to executes and fetch records from HDFS.
+     * Processes the query and publishes violations to the topic
      *
-     * @author ManishKumar
-     * @version 1.0
-     * @param query this parameter is used to fetch records from HDFS.
-     * @since 2017-03-31
+     * @param query Query to be processed
      */
-    
-    public static void processHdfsQuery(final String query) {
+    public void process(final String query) {
 
         List<HashMap<String, Object>> events = null;
         long resultCount;
@@ -121,9 +93,7 @@ public class HDFSCustomUtil {
             LOGGER.debug("Querying with Offset:{} Max:{} Q:{} ..", offset, BATCH_SIZE, query);
 
             try {
-
-                // Get all violations events
-                events = ImpalaDbUtil.executeImapalaQuery(query, offset, BATCH_SIZE);
+                events = ImpalaDbUtil.executeImapalaQueryByEventTime(query, offset, BATCH_SIZE);
             } catch (Exception ex) {
                 LOGGER.error("Error getting results from HDFS", ex);
             }
@@ -137,7 +107,7 @@ public class HDFSCustomUtil {
                 LOGGER.debug("Total documents # {} Returned # {}", resultCount, events.size());
 
                 // process hdfs details and collect violations data
-                collectViolations(events.iterator());
+                publishViolations(events.iterator());
 
                 if (recordsAvailable = resultCount >= BATCH_SIZE) {
                     offset += BATCH_SIZE;
@@ -146,22 +116,18 @@ public class HDFSCustomUtil {
                 }
             }
         }
-
     }
-    
-    
-    /**
-     * This method is used to process HDFS data and generate EEO object List.
-     *
-     * @author ManishKumar
-     * @version 1.0
-     * @param iterator this parameter is used to have references of each HDFS record.  
-     * @since 2017-03-31
-     */
 
-    public static void collectViolations(final Iterator<HashMap<String, Object>> iterator) {
+    private static final HashMap<Long, Tuple2<ViolationDisplayConfigBean, List<String>>> vInfoConfig = new HashMap<>();
+    
+    // DO NOT CHANGE BELOW
+    // To do: change name to PublishViolations
 
-        LOGGER.debug("[Updating violations ..");
+    private void publishViolations(final Iterator<HashMap<String, Object>> iterator) {
+
+        LOGGER.debug("Updating violations ..");
+
+        final List<EnrichedEventObject> violationList = new ArrayList<>();
 
         // eeo object will have complete event details (along-with violations details) 
         EnrichedEventObject eeo;
@@ -170,24 +136,26 @@ public class HDFSCustomUtil {
         Violation v;
         HashMap<Long, Map<String, ViolationDetails>> vdDetails;
         List<Violation> violations;
-        final Long policyId = HDFSCustomExecutor.policy.getId();
-        final String policyName = HDFSCustomExecutor.policy.getName();
+        final Long policyId = policy.getId();
+        final String policyName = policy.getName();
 
-        final String violator = HDFSCustomExecutor.policy.getViolator();
-        final long riskthreatid = HDFSCustomExecutor.policy.getRiskthreatid();
-        final String threatname = HDFSCustomExecutor.policy.getThreatname();
-        final long riskTypeId = HDFSCustomExecutor.policy.getRiskTypeId();
-        final Integer categoryid = HDFSCustomExecutor.policy.getCategoryid();
-        final String category = HDFSCustomExecutor.policy.getCategory();
-        final double riskScore = PolicyConstants.CRITICALITY_MAP.get(HDFSCustomExecutor.policy.getCriticality());
-        String violationdisplayconfig = HDFSCustomExecutor.policy.getViolationdisplayconfig();
+        final String violator = policy.getViolator();
+        final long riskthreatid = policy.getRiskthreatid();
+        final String threatname = policy.getThreatname();
+        final long riskTypeId = policy.getRiskTypeId();
+        final Integer categoryid = policy.getCategoryid();
+        final String category = policy.getCategory();
+        final double riskScore = PolicyConstants.CRITICALITY_MAP.get(policy.getCriticality());
+
+        String violationdisplayconfig = policy.getViolationdisplayconfig();
         if (violationdisplayconfig != null && !violationdisplayconfig.isEmpty()) {
             List<ViolationDisplayConfigBean> displayConfigBeans = JAXBUtilImpl.xmlToPojos(violationdisplayconfig, ViolationDisplayConfigBean.class);
             ViolationDisplayConfigBean displayConfigBean = !displayConfigBeans.isEmpty() ? displayConfigBeans.get(0) : null;
-            List<String> parseTemplate = (HDFSCustomExecutor.policy.getVerboseinfotemplate() != null && !HDFSCustomExecutor.policy.getVerboseinfotemplate().isEmpty()) ? CommonUtility.parseTemplate(HDFSCustomExecutor.policy.getVerboseinfotemplate()) : new ArrayList<>();
+            List<String> parseTemplate = (policy.getVerboseinfotemplate() != null && !policy.getVerboseinfotemplate().isEmpty()) ? CommonUtility.parseTemplate(policy.getVerboseinfotemplate()) : new ArrayList<>();
             vInfoConfig.put(policyId, new Tuple2<>(displayConfigBean, parseTemplate));
         }
 
+        LOGGER.debug("About to form EEOs ..");
         while (iterator.hasNext()) {
 
             eeo = new EnrichedEventObject();
@@ -195,7 +163,7 @@ public class HDFSCustomUtil {
             // populate eeo object with the help of HDFS details
             EEOUtil.populateEEO(iterator.next(), eeo);
 
-            eeo.setViolations(violations = new ArrayList<>());
+            eeo.setCustomViolations(violations = new ArrayList<>());
             violations.add(v = new Violation(policyId, policyName));
 
             v.setViolator(violator);
@@ -259,8 +227,9 @@ public class HDFSCustomUtil {
             violationList.add(eeo);
         }
 
+        LOGGER.debug("Violations found # {}", violationList.size());
         if (!violationList.isEmpty()) {
-            HDFSCustomExecutor.eeoProducer.publish(violationList, HDFSCustomExecutor.violationTopic);
+            eeoProducer.publish(violationList, violationTopic);
             LOGGER.debug("Violations published # {}", violationList.size());
             violationList.clear();
         }
