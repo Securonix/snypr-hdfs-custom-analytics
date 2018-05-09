@@ -77,6 +77,12 @@
             <version>0.9.46</version>
         </dependency>
         
+         
+         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>solr6-util</artifactId>
+            <version>${project.version}</version>
+         </dependency>
         <dependency>
             <groupId>org.xerial.snappy</groupId>
             <artifactId>snappy-java</artifactId>

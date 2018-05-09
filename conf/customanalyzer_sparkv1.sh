@@ -20,4 +20,7 @@ spark-submit \
  --files ./conf/hibernate.cfg.xml,./conf/log4j.properties,./conf/log4j2.xml,./conf/customanalyzer.properties \
  --master yarn \
  --deploy-mode cluster \
+--conf spark.executor.userClassPathFirst=true \
+ --conf spark.driver.userClassPathFirst=true \
+ --driver-java-options "-Dspark.driver.userClassPathFirst=true -Dspark.executor.userClassPathFirst=true -Djute.maxbuffer=50000000" \
 snypr-hdfs-custom-analytics-1.1.jar
