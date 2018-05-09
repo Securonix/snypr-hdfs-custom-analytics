@@ -7,6 +7,10 @@ import com.securonix.application.impala.ImpalaDbUtil;
 import com.securonix.application.policy.PolicyConstants;
 import static com.securonix.application.policy.PolicyConstants.BATCH_SIZE;
 import com.securonix.application.suspect.ViolationInfoBuildUtil;
+import com.securonix.customanalyzer.analytics.CustomAnalyzer2;
+import com.securonix.customanalyzer.analytics.CustomAnalyzer3;
+import com.securonix.customanalyzer.analytics.CustomAnalyzer4;
+import com.securonix.customanalyzer.analytics.HDFSCustomUtil;
 import com.securonix.kafkaclient.producers.EEOProducer;
 import com.securonix.kafkaclient.producers.KafkaProducerFactory;
 import com.securonix.snyper.common.EnrichedEventObject;
@@ -22,6 +26,12 @@ import com.securonix.snyper.violationinfo.beans.ViolationDetailsTree;
 import com.securonix.snyper.violationinfo.beans.ViolationInfo;
 import com.securonix.snyper.violationinfo.beans.ViolationInfoConstants;
 import com.securonix.customutil.EEOUtil;
+import com.securonix.hdfs.client.HDFSClient;
+import com.securonix.snyper.config.beans.HBaseConfigBean;
+import com.securonix.snyper.config.beans.HDFSConfigBean;
+import com.securonix.snyper.config.beans.RedisConfigBean;
+import com.securonix.snyper.config.beans.SolrConfigBean;
+import com.securonix.wrapper.HDFSWrapper;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -31,9 +41,12 @@ import java.util.Properties;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import scala.Tuple2;
+import org.apache.solr.common.SolrDocument;
+import org.apache.spark.broadcast.Broadcast;
 
 /**
- * Fires query against HDFS, collects and publishes violations to the Kafka topic
+ * Fires query against HDFS, collects and publishes violations to the Kafka
+ * topic
  *
  * @author Securonix Inc.
  */
@@ -56,13 +69,28 @@ public class QueryProcessor {
      */
     private final PolicyMaster policy;
 
+    private CustomAnalyzer2 customAnalyzer2;
+
+    private CustomAnalyzer3 customAnalyzer3;
+
+    private CustomAnalyzer4 customAnalyzer4;
+
+    private HDFSClient hdfsClient;
+
+    private String customEventsFolder;
+
     /**
-     * Accepts Hadoop and policy configurations, and initializes Kafka producer for publishing violations to the topic
+     * Accepts Hadoop and policy configurations, and initializes Kafka producer
+     * for publishing violations to the topic
      *
      * @param hcb Hadoop configuration
      * @param policy Policy configuration
+     * @param solrLookupEnabled
+     * @param redisLookupEnabled
+     * @param hbaseLookupEnabled
+     * @param hw
      */
-    public QueryProcessor(final HadoopConfigBean hcb, final PolicyMaster policy) {
+    public QueryProcessor(final HadoopConfigBean hcb, final PolicyMaster policy, final boolean redisLookupEnabled, final boolean solrLookupEnabled, final boolean hbaseLookupEnabled, final Broadcast<HDFSWrapper> hw) {
 
         this.policy = policy;
         final KafkaConfigBean kcb = hcb.getKafkaConfigBean();
@@ -72,6 +100,45 @@ public class QueryProcessor {
         props.put("source", HadoopConfigBean.KAFKA_SOURCE.CLUSTER);
 
         eeoProducer = (EEOProducer) KafkaProducerFactory.INSTANCE.getProducer(KafkaProducerFactory.TYPE_OF_MESSAGE.EEO, kcb, props);
+
+        if (redisLookupEnabled) {
+            RedisConfigBean redisConfigBean = hcb.getRedisConfigBean();
+            customAnalyzer2 = new CustomAnalyzer2();
+            customAnalyzer2.init(redisConfigBean);
+        }
+
+        if (solrLookupEnabled) {
+            SolrConfigBean solrConfigBean = hcb.getSolrConfigBean();
+            customAnalyzer3 = new CustomAnalyzer3();
+            customAnalyzer3.init(solrConfigBean);
+        }
+
+        if (hbaseLookupEnabled) {
+            HBaseConfigBean hbaseConfigBean = hcb.gethBaseConfigBean();
+            customAnalyzer4 = new CustomAnalyzer4();
+            customAnalyzer4.init(hbaseConfigBean);
+        }
+
+        // Below code is added to write/read into/from HDFS
+        if (hw != null) {
+
+            // HDFS directory definds to store sample eeo events
+            
+            HDFSConfigBean hdfsConfigBean = hcb.gethDFSConfigBean();
+            customEventsFolder = hdfsConfigBean.getFolder(HDFSConfigBean.FOLDER_TYPE.WORKING).getName()
+                    + "/"
+                    + hdfsConfigBean.getFolder(HDFSConfigBean.FOLDER_TYPE.PRODUCT).getName()
+                    + "/customevents";
+
+            LOGGER.debug("Base HDFS folder for custom events- {}", customEventsFolder);
+
+            // hdfsClient instance obtained
+            
+            hdfsClient = ((HDFSWrapper) hw.getValue()).getClient(hcb.gethDFSConfigBean());
+
+            LOGGER.debug("hdfsClient initialized");
+
+        }
 
         LOGGER.debug("Query processor initialized!");
     }
@@ -119,10 +186,9 @@ public class QueryProcessor {
     }
 
     private static final HashMap<Long, Tuple2<ViolationDisplayConfigBean, List<String>>> vInfoConfig = new HashMap<>();
-    
+
     // DO NOT CHANGE BELOW
     // To do: change name to PublishViolations
-
     private void publishViolations(final Iterator<HashMap<String, Object>> iterator) {
 
         LOGGER.debug("Updating violations ..");
@@ -163,7 +229,51 @@ public class QueryProcessor {
             // populate eeo object with the help of HDFS details
             EEOUtil.populateEEO(iterator.next(), eeo);
 
-            eeo.setCustomViolations(violations = new ArrayList<>());
+            // Form Redis Key and chcek in Redis Memory
+            /* if (customAnalyzer2 != null) {
+
+                final String redisKey = "1_l_NONBUSINESSDOMAINS|NENTER.COM";
+                boolean isRecordPresentInRedis = customAnalyzer2.isKeyPresentInRedis(redisKey);
+                if (isRecordPresentInRedis) {
+                    // Do operation as required
+                } else {
+
+                }
+            }*/
+            // Configure the Solr query and Solr Core and fetched the Solr Documents 
+            /*final String coreName = "MKS-Snypr-activity_1";
+            final String solrQuery = "eventid:679aca5d-2471-4ee2-87d2-ec49ad0ddfd3";
+
+            if (customAnalyzer3 != null) {
+
+                List<SolrDocument> getSolrDocument = customAnalyzer3.executeSolrQuery(solrQuery, coreName);
+                if (getSolrDocument != null && !getSolrDocument.isEmpty()) {
+                    // Do operation as required
+
+                }
+            }*/
+            // Fetch Recods from hbase table
+            /* final String tableName = "manish:correlationrulesh";
+
+            if (customAnalyzer4 != null) {
+                List recordList = customAnalyzer4.getHbaseRecords(tableName);
+            }*/
+            // Start : Sample code added to write/read data from HDFS
+            try {
+                LOGGER.debug("Going to Write into HDFS");
+                List<EnrichedEventObject> sampleEEOList = HDFSCustomUtil.getSampleEEO(); // Get sample eeo list
+                HDFSCustomUtil.writetoHDFS(customEventsFolder, hdfsClient, sampleEEOList);
+                LOGGER.debug("HDFS write completed");
+                LOGGER.debug("Going to Read from HDFS");
+                List<EnrichedEventObject> finalEEOList = HDFSCustomUtil.readFromHDFS(customEventsFolder, hdfsClient);
+                LOGGER.debug("HDFS read completed : List Size [" + finalEEOList + "]");
+
+            } catch (Exception ex) {
+                LOGGER.error("Failed to write/read custom events into/from HDFS", ex);
+            }
+            // End  
+
+            eeo.setViolations(violations = new ArrayList<>());
             violations.add(v = new Violation(policyId, policyName));
 
             v.setViolator(violator);

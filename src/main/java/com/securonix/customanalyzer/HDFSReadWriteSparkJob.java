@@ -2,13 +2,13 @@ package com.securonix.customanalyzer;
 
 import com.securonix.application.hadoop.HadoopConfigUtil;
 import com.securonix.application.hibernate.tables.PolicyMaster;
-import static com.securonix.customanalyzer.CustomAnalyzerHelper.createPolicy;
-import static com.securonix.customanalyzer.CustomAnalyzerHelper.getResourceGroupsForFunctionality;
 import com.securonix.kafkaclient.KafkaClient;
 import com.securonix.rdd.SecuronixRDD;
 import com.securonix.snyper.config.beans.HadoopConfigBean;
 import com.securonix.snyper.config.beans.KafkaConfigBean;
 import com.securonix.snyper.policyengine.PolicyUtil;
+import static com.securonix.customanalyzer.CustomAnalyzerHelper.createPolicy;
+import static com.securonix.customanalyzer.CustomAnalyzerHelper.getResourceGroupsForFunctionality;
 import static com.securonix.customanalyzer.CustomAnalyzerHelper.readViolationInfoProperties;
 import com.securonix.customanalyzer.analytics.CustomAnalyzer1;
 import java.io.InputStream;
@@ -22,6 +22,7 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.broadcast.Broadcast;
 import org.apache.spark.storage.StorageLevel;
+import com.securonix.wrapper.HDFSWrapper;
 
 /**
  * This CustomAnalyzerSparkJob class is the entry point for the Spark Job. It
@@ -35,7 +36,7 @@ import org.apache.spark.storage.StorageLevel;
  * @version 1.0
  * @since 2017-03-31
  */
-public class CustomAnalyzerSparkJob {
+public class HDFSReadWriteSparkJob {
 
     /**
      * Logger for the class
@@ -183,6 +184,7 @@ public class CustomAnalyzerSparkJob {
 
         final Broadcast<QueryWrapper> wrapper = sc.broadcast(new QueryWrapper());
         final Broadcast<PolicyMaster> pm = sc.broadcast(policy);
+        final Broadcast<HDFSWrapper> hw = sc.broadcast(new HDFSWrapper());
         final JavaRDD<Long> rdd = sc.parallelize(rgIds).persist(StorageLevel.MEMORY_ONLY_SER());
 
         LOGGER.debug("About to start forming / executing queries ..");
@@ -196,7 +198,7 @@ public class CustomAnalyzerSparkJob {
 
         persist.foreachPartition(iterator -> {
             // Initializes the Kafka producer to publish to Violation Topic
-            final QueryProcessor ap = ((QueryWrapper) wrapper.getValue()).getProcessor(hcb, pm.getValue(), enabledRedisLookup, enabledSolrLookup, enabledHbaseLookup,null);
+            final QueryProcessor ap = ((QueryWrapper) wrapper.getValue()).getProcessor(hcb, pm.getValue(), enabledRedisLookup, enabledSolrLookup, enabledHbaseLookup,hw);
             // Iterate through list of queries and execute on each partition
             LOGGER.debug("New Partition:");
 
