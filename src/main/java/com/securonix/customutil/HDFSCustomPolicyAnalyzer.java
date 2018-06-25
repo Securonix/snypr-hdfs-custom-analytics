@@ -8,7 +8,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import com.securonix.application.hibernate.tables.PolicyMaster;
 import com.securonix.application.policy.PolicyConstants;
-import com.securonix.hadoop.util.SnyperUtil;
 import com.securonix.kafkaclient.producers.KafkaProducerFactory;
 import com.securonix.snyper.config.beans.KafkaConfigBean;
 import java.util.ArrayList;
@@ -20,6 +19,7 @@ import java.util.Set;
 import com.securonix.application.policy.PolicyUtil;
 import com.securonix.application.risk.dataAccess.uiUtil.RiskUtilImpl;
 import com.securonix.application.ui.uiUtil.SuspectActivitiesControllerUtil;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -60,7 +60,7 @@ public class HDFSCustomPolicyAnalyzer {
     public static void main(String args[]) throws Exception {
 
         // Extract arguments passed to Main Method
-        final Map<String, String> argumentsMap = SnyperUtil.extractArguments(args);
+        final Map<String, String> argumentsMap = extractArguments(args);
 
         if (!argumentsMap.containsKey("-policyName") || !argumentsMap.containsKey("-functionalityType") || !argumentsMap.containsKey("-categoryId")
                 || !argumentsMap.containsKey("-riskThreatName")) {
@@ -182,6 +182,22 @@ public class HDFSCustomPolicyAnalyzer {
 
         // Start processing for custom analytics 
         HDFSCustomUtil.executeManualCustomPolicy();
+    }
+    public static Map<String, String> extractArguments(String[] args) {
+
+        final Map<String, String> map = new HashMap<>();
+        String arg;
+        String[] arr;
+
+        for (int i = 0, max = args.length; i < max; i++) {
+            arg = args[i];
+            arr = arg.split(":(?=([^\"]*\"[^\"]*\")*[^\"]*$)", -1);
+            if (arr.length == 2) {
+                map.put(arr[0], arr[1]);
+            }
+        }
+
+        return map;
     }
 
 }

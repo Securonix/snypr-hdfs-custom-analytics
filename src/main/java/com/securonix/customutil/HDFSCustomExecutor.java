@@ -7,11 +7,11 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import com.securonix.application.hibernate.tables.PolicyMaster;
-import com.securonix.hadoop.util.SnyperUtil;
 import com.securonix.kafkaclient.producers.KafkaProducerFactory;
 import com.securonix.snyper.config.beans.KafkaConfigBean;
 import com.securonix.snyper.policyengine.PolicyUtil;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
@@ -51,7 +51,7 @@ public class HDFSCustomExecutor {
     public static void main(String args[]) throws Exception {
 
         // Extract arguments passed to Main Method
-        final Map<String, String> argumentsMap = SnyperUtil.extractArguments(args);
+        final Map<String, String> argumentsMap = extractArguments(args);
 
         if (!argumentsMap.containsKey("-pId")) {
 
@@ -110,5 +110,20 @@ public class HDFSCustomExecutor {
         // Start processing for custom analytics 
         HDFSCustomUtil.executeCustomPolicy();
     }
+    public static Map<String, String> extractArguments(String[] args) {
 
+        final Map<String, String> map = new HashMap<>();
+        String arg;
+        String[] arr;
+
+        for (int i = 0, max = args.length; i < max; i++) {
+            arg = args[i];
+            arr = arg.split(":(?=([^\"]*\"[^\"]*\")*[^\"]*$)", -1);
+            if (arr.length == 2) {
+                map.put(arr[0], arr[1]);
+            }
+        }
+
+        return map;
+    }
 }
