@@ -47,7 +47,7 @@ public class CustomAnalyzer4 {
             hbaseClient.initializeHBase(hbaseConfigBean);
             LOGGER.debug("HBase client initialized!");
 
-        } catch (HBaseException | SnyperException ex) {
+        } catch (Exception ex) {
             LOGGER.error("Failed to initialized Hbase client", ex);
 
         }
