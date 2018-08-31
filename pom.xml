@@ -76,6 +76,12 @@
             <artifactId>syslog4j</artifactId>
             <version>0.9.46</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.solr</groupId>
+            <artifactId>solr-solrj</artifactId>
+            <version>6.6.0</version>
+            <type>jar</type>
+        </dependency>
         
          
          <dependency>
