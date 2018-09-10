@@ -123,7 +123,6 @@ public class QueryProcessor {
         if (hw != null) {
 
             // HDFS directory definds to store sample eeo events
-            
             HDFSConfigBean hdfsConfigBean = hcb.gethDFSConfigBean();
             customEventsFolder = hdfsConfigBean.getFolder(HDFSConfigBean.FOLDER_TYPE.WORKING).getName()
                     + "/"
@@ -133,7 +132,6 @@ public class QueryProcessor {
             LOGGER.debug("Base HDFS folder for custom events- {}", customEventsFolder);
 
             // hdfsClient instance obtained
-            
             hdfsClient = ((HDFSWrapper) hw.getValue()).getClient(hcb.gethDFSConfigBean());
 
             LOGGER.debug("hdfsClient initialized");
@@ -259,18 +257,20 @@ public class QueryProcessor {
                 List recordList = customAnalyzer4.getHbaseRecords(tableName);
             }*/
             // Start : Sample code added to write/read data from HDFS
-            try {
-                LOGGER.debug("Going to Write into HDFS");
-                List<EnrichedEventObject> sampleEEOList = HDFSCustomUtil.getSampleEEO(); // Get sample eeo list
-                HDFSCustomUtil.writetoHDFS(customEventsFolder, hdfsClient, sampleEEOList);
-                LOGGER.debug("HDFS write completed");
-                LOGGER.debug("Going to Read from HDFS");
-                List<EnrichedEventObject> finalEEOList = HDFSCustomUtil.readFromHDFS(customEventsFolder, hdfsClient);
-                LOGGER.debug("HDFS read completed : List Size [" + finalEEOList + "]");
+            /*if (hdfsClient != null) {
+                try {
+                    LOGGER.debug("Going to Write into HDFS");
+                    List<EnrichedEventObject> sampleEEOList = HDFSCustomUtil.getSampleEEO(); // Get sample eeo list
+                    HDFSCustomUtil.writetoHDFS(customEventsFolder, hdfsClient, sampleEEOList);
+                    LOGGER.debug("HDFS write completed");
+                    LOGGER.debug("Going to Read from HDFS");
+                    List<EnrichedEventObject> finalEEOList = HDFSCustomUtil.readFromHDFS(customEventsFolder, hdfsClient);
+                    LOGGER.debug("HDFS read completed : List Size [" + finalEEOList + "]");
 
-            } catch (Exception ex) {
-                LOGGER.error("Failed to write/read custom events into/from HDFS", ex);
-            }
+                } catch (Exception ex) {
+                    LOGGER.error("Failed to write/read custom events into/from HDFS", ex);
+                }
+            }*/
             // End  
 
             eeo.setViolations(violations = new ArrayList<>());
