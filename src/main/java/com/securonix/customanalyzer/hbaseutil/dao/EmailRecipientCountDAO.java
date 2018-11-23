@@ -124,7 +124,7 @@ public class EmailRecipientCountDAO extends AbstractTableDAO {
                 System.out.println("In family size:" + columnFamilies.size());
                 hbaseClient.createTable(table, columnFamilies, false, 1);
             }
-        } catch (HBaseException ex) {
+        } catch (Exception ex) {
             System.out.println("HBaseException"+ ex);
         }
     }

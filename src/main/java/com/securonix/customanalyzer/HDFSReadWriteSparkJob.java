@@ -184,7 +184,7 @@ public class HDFSReadWriteSparkJob {
 
         final Broadcast<QueryWrapper> wrapper = sc.broadcast(new QueryWrapper());
         final Broadcast<PolicyMaster> pm = sc.broadcast(policy);
-        final Broadcast<HDFSWrapper> hw = sc.broadcast(new HDFSWrapper());
+        //final Broadcast<HDFSWrapper> hw = sc.broadcast(new HDFSWrapper());
         final JavaRDD<Long> rdd = sc.parallelize(rgIds).persist(StorageLevel.MEMORY_ONLY_SER());
 
         LOGGER.debug("About to start forming / executing queries ..");
@@ -198,7 +198,7 @@ public class HDFSReadWriteSparkJob {
 
         persist.foreachPartition(iterator -> {
             // Initializes the Kafka producer to publish to Violation Topic
-            final QueryProcessor ap = ((QueryWrapper) wrapper.getValue()).getProcessor(hcb, pm.getValue(), enabledRedisLookup, enabledSolrLookup, enabledHbaseLookup,hw);
+            final QueryProcessor ap = ((QueryWrapper) wrapper.getValue()).getProcessor(hcb, pm.getValue(), enabledRedisLookup, enabledSolrLookup, enabledHbaseLookup,null);
             // Iterate through list of queries and execute on each partition
             LOGGER.debug("New Partition:");
 

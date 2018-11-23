@@ -209,6 +209,8 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>securonix-sdk</artifactId>
             <version>1.0</version>
+            <scope>system</scope>
+   			<systemPath>${project.basedir}/lib/securonix-sdk-1.0.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

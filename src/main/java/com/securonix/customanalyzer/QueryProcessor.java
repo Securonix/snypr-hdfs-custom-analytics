@@ -132,7 +132,7 @@ public class QueryProcessor {
             LOGGER.debug("Base HDFS folder for custom events- {}", customEventsFolder);
 
             // hdfsClient instance obtained
-            hdfsClient = ((HDFSWrapper) hw.getValue()).getClient(hcb.gethDFSConfigBean());
+           // hdfsClient = ((HDFSWrapper) hw.getValue()).getClient(hcb.gethDFSConfigBean());
 
             LOGGER.debug("hdfsClient initialized");
 
